@@ -11,6 +11,8 @@ classifiers = ["License :: OSI Approved :: GNU General Public License v3 or late
 dynamic = ["version", "description"]
 dependencies = [
     "typer[all]",
+    "xdg",
+    "pydot",
 ]
 
 [project.scripts]
@@ -23,3 +25,7 @@ Home = "https://github.com/AliGhahraei/route-tracker"
 [tool.mypy]
 files = ['route_tracker', 'tests', '*.py']
 strict = true
+
+  [[tool.mypy.overrides]]
+  module = 'pydot.*'
+  ignore_missing_imports = true
