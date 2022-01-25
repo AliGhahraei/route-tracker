@@ -15,7 +15,7 @@ CommandRunner = Callable[[], Result]
 
 @fixture
 def cli_runner() -> CliRunner:
-    return CliRunner()
+    return CliRunner(mix_stderr=False)
 
 
 @fixture(autouse=True)
@@ -35,13 +35,9 @@ class TestNewCommand:
     def test_new_exits_normally_when_called_with_name(
             command_runner: CommandRunner,
     ) -> None:
-        assert command_runner().exit_code == 0
-
-    @staticmethod
-    def test_new_shows_project_created_when_called_with_name(
-            command_runner: CommandRunner,
-    ) -> None:
-        assert 'test_name created' in command_runner().stdout
+        result = command_runner()
+        assert 'test_name created' in result.stdout
+        assert result.exit_code == 0
 
     @staticmethod
     def test_new_creates_dot_file_when_called_with_name(
@@ -56,3 +52,12 @@ class TestNewCommand:
             }
             """)
             assert f.read() == expected
+
+    @staticmethod
+    def test_new_exits_with_error_when_called_with_same_name_twice(
+            command_runner: CommandRunner, test_data_dir: Path,
+    ) -> None:
+        command_runner()
+        result = command_runner()
+        assert 'test_name already exists. Ignoring...' in result.stderr
+        assert result.exit_code == 1
