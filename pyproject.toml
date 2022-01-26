@@ -23,6 +23,21 @@ route = "route_tracker.tracker:app"
 Home = "https://github.com/AliGhahraei/route-tracker"
 
 
+[tool.coverage]
+
+  [tool.coverage.run]
+  branch = true
+
+  [tool.coverage.report]
+  exclude_lines = [
+      'pragma: no cover',
+      'pass',
+      'if TYPE_CHECKING.*',
+  ]
+  fail_under = 100
+  show_missing = true
+
+
 [tool.mypy]
 files = ['route_tracker', 'tests', '*.py']
 strict = true
