@@ -12,7 +12,7 @@ dynamic = ["version", "description"]
 dependencies = [
     "typer[all]",
     "xdg",
-    "pydot",
+    "pygraphviz",
 ]
 
 [project.scripts]
@@ -27,5 +27,5 @@ files = ['route_tracker', 'tests', '*.py']
 strict = true
 
   [[tool.mypy.overrides]]
-  module = 'pydot.*'
+  module = 'pygraphviz.*'
   ignore_missing_imports = true

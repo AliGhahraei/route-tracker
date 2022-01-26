@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import os
 from pathlib import Path
-from string import punctuation, whitespace
 from typing import Callable
 
+import pygraphviz as pgv
 from click.testing import Result
 from pytest import fixture
 from typer.testing import CliRunner
@@ -30,9 +30,6 @@ def new_command_runner(cli_runner: CliRunner) -> CommandRunner:
     return lambda: cli_runner.invoke(app, ['new', 'test_name'])
 
 
-def assert_graphs_equal(graph1: str, graph2: str) -> None:
-    removal_table = str.maketrans(dict.fromkeys(punctuation + whitespace))
-    assert graph1.translate(removal_table) == graph2.translate(removal_table)
 
 
 class TestNewCommand:
@@ -49,14 +46,8 @@ class TestNewCommand:
             new_command_runner: CommandRunner, test_data_dir: Path,
     ) -> None:
         new_command_runner()
-        with open(test_data_dir / 'route-tracker' / 'test_name') as f:
-            expected = """
-            graph test_name {
-                graph [bb="0,0,0,0"];
-                node [label="\\N"];
-            }
-            """
-            assert_graphs_equal(f.read(), expected)
+        assert (pgv.AGraph(test_data_dir / 'route-tracker' / 'test_name')
+                == pgv.AGraph(name='test_name'))
 
     @staticmethod
     def test_new_exits_with_error_when_called_with_same_name_twice(
@@ -83,18 +74,7 @@ class TestAddCommand:
         new_command_runner()
         add_command_runner()
 
-        with open(test_data_dir / 'route-tracker' / 'test_name') as f:
-            expected = """
-            graph test_name {
-                graph [bb="0,0,148.35,36"];
-                node [label="\\N"];
-                "\\n" [height=0.5,
-                      pos="27,18",
-                      width=0.75];
-                choice1 [height=0.5,
-                         label=choice1,
-                         pos="110,18",
-                         width=1.0652];
-            }
-            """
-            assert_graphs_equal(expected, f.read())
+        expected = pgv.AGraph(name='test_name')
+        expected.add_node('choice1', label='choice1')
+        assert (pgv.AGraph(test_data_dir / 'route-tracker' / 'test_name')
+                == expected)
