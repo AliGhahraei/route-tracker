@@ -84,7 +84,9 @@ tomli==2.0.0 \
 tomlkit==0.8.0 \
     --hash=sha256:29e84a855712dfe0e88a48f6d05c21118dbafb283bb2eed614d46f80deb8e9a1 \
     --hash=sha256:b824e3466f1d475b2b5f1c392954c6cb7ea04d64354ff7300dc7c14257dc85db
-    # via doit-tools
+    # via
+    #   -c requirements/requirements.txt
+    #   doit-tools
 virtualenv==20.13.0 \
     --hash=sha256:339f16c4a86b44240ba7223d0f93a7887c3ca04b5f9c8129da7958447d079b09 \
     --hash=sha256:d8458cf8d59d0ea495ad9b34c2599487f8a7772d796f9910858376d1600dd2dd

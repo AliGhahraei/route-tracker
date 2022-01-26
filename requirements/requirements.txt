@@ -19,6 +19,10 @@ shellingham==1.4.0 \
     --hash=sha256:4855c2458d6904829bd34c299f11fdeed7cfefbf8a2c522e4caea6cd76b3171e \
     --hash=sha256:536b67a0697f2e4af32ab176c00a50ac2899c5a05e0d8e2dadac8e58888283f9
     # via typer
+tomlkit==0.8.0 \
+    --hash=sha256:29e84a855712dfe0e88a48f6d05c21118dbafb283bb2eed614d46f80deb8e9a1 \
+    --hash=sha256:b824e3466f1d475b2b5f1c392954c6cb7ea04d64354ff7300dc7c14257dc85db
+    # via route_tracker (pyproject.toml)
 typer[all]==0.4.0 \
     --hash=sha256:63c3aeab0549750ffe40da79a1b524f60e08a2cbc3126c520ebf2eeaf507f5dd \
     --hash=sha256:d81169725140423d072df464cad1ff25ee154ef381aaf5b8225352ea187ca338
