@@ -11,6 +11,6 @@ jobs:
     - uses: "actions/setup-python@v2"
       with:
         python-version: "3.10"
-    - run: sudo apt-get install -y graphviz
+    - run: sudo apt-get install -y graphviz libgraphviz-dev
     - run: pip install -r requirements/toolchain_requirements.txt
     - run: nox
