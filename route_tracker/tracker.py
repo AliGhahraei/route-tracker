@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import sys
 from pathlib import Path
-from typing import List, Sequence, Tuple, cast
+from subprocess import run
+from typing import List, MutableMapping, Sequence, Tuple, cast
 
 import pygraphviz as pgv
-from tomlkit import dumps, parse
+from tomlkit import document, dumps, parse
 from typer import Exit, Typer, echo
-from xdg import xdg_data_home
+from xdg import xdg_config_home, xdg_data_home
 
 app = Typer()
 
@@ -112,3 +113,45 @@ def _get_last_selected_choice(name: str) -> str:
     with open(_get_project_dir(name) / 'data') as f:
         config = parse(f.read())
         return cast(str, config['last_selected_choice'])
+
+
+@app.command()
+def view(project_name: str) -> None:
+    routes_file = _get_project_dir(project_name) / 'routes.png'
+    _get_graph(project_name).draw(routes_file, prog='dot')
+    run([_get_viewer(), routes_file])
+
+
+def _get_viewer() -> str:
+    try:
+        viewer = _read_viewer()
+    except KeyError:
+        viewer = input('Image viewer command:')
+        _store_viewer(viewer)
+    return viewer
+
+
+def _read_viewer() -> str:
+    return _read_config()['viewer']
+
+
+def _read_config() -> MutableMapping[str, str]:
+    try:
+        with open(_get_config(), 'r') as f:
+            config = parse(f.read())
+    except FileNotFoundError:
+        config = document()
+    return config
+
+
+def _get_config() -> Path:
+    config_dir = xdg_config_home() / 'route-tracker'
+    config_dir.mkdir(parents=True, exist_ok=True)
+    return config_dir / 'config.toml'
+
+
+def _store_viewer(viewer: str) -> None:
+    config = _read_config()
+    config['viewer'] = viewer
+    with open(_get_config(), 'w') as f:
+        f.write(dumps(config))

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import os
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Callable, Generator, Protocol
+from unittest.mock import Mock, patch
 
 import pygraphviz as pgv
 from click.testing import Result
@@ -18,6 +19,11 @@ class NewRunner(Protocol):
         pass
 
 
+class ViewRunner(Protocol):
+    def __call__(self, project_name: str = ..., input_: str = ...) -> Result:
+        pass
+
+
 @fixture
 def cli_runner() -> CliRunner:
     return CliRunner(mix_stderr=False)
@@ -28,6 +34,19 @@ def test_data_dir(tmp_path: Path) -> Path:
     data_dir = tmp_path
     os.environ['XDG_DATA_HOME'] = str(data_dir)
     return data_dir
+
+
+@fixture(autouse=True)
+def test_config_dir(tmp_path: Path) -> Path:
+    config_dir = tmp_path
+    os.environ['XDG_CONFIG_HOME'] = str(config_dir)
+    return config_dir
+
+
+@fixture(autouse=True)
+def mock_run() -> Generator[Mock, None, None]:
+    with patch('route_tracker.tracker.run') as mock:
+        yield mock
 
 
 @fixture
@@ -44,8 +63,12 @@ def starting_graph() -> pgv.AGraph:
     return graph
 
 
+def get_project_dir(data_dir: Path) -> Path:
+    return data_dir / 'route-tracker' / 'test_name'
+
+
 def assert_graphs_equal(data_dir: Path, expected_graph: pgv.AGraph) -> None:
-    graph = pgv.AGraph(data_dir / 'route-tracker' / 'test_name' / 'graph')
+    graph = pgv.AGraph(get_project_dir(data_dir) / 'graph')
     assert graph.to_string() == expected_graph.to_string()
 
 
@@ -182,3 +205,49 @@ class TestAddCommand:
     ) -> None:
         assert_error_exit(add_runner('choice\n\n'),
                           'Project test_name does not exist')
+
+
+class TestViewCommand:
+    @staticmethod
+    @fixture
+    def view_runner(cli_runner: CliRunner) -> ViewRunner:
+        def runner(project_name: str = 'test_name', input_: str = '') \
+                -> Result:
+            return cli_runner.invoke(app, ['view', project_name], input=input_)
+        return runner
+
+    @staticmethod
+    def test_view_prompts_for_viewer_if_not_configured(
+            new_runner: NewRunner, view_runner: ViewRunner,
+    ) -> None:
+        new_runner()
+        assert_normal_exit(view_runner(input_='test_viewer\n'),
+                           'Image viewer command:')
+
+    @staticmethod
+    def test_view_does_not_prompt_for_viewer_if_configured(
+            new_runner: NewRunner, view_runner: ViewRunner,
+    ) -> None:
+        new_runner()
+        view_runner(input_='test_viewer\n')
+        assert_normal_exit(view_runner(), '')
+
+    @staticmethod
+    def test_view_shows_existing_graph(
+            new_runner: NewRunner, view_runner: ViewRunner,
+            test_data_dir: Path, mock_run: Mock,
+    ) -> None:
+        new_runner()
+        view_runner(input_='test_viewer\n')
+
+        routes = get_project_dir(test_data_dir) / 'routes.png'
+        assert routes.exists()
+        mock_run.assert_called_once_with(
+            ['test_viewer', routes],
+        )
+
+    @staticmethod
+    def test_view_exits_with_error_if_project_does_not_exist(
+            view_runner: ViewRunner,
+    ) -> None:
+        assert_error_exit(view_runner(), 'Project test_name does not exist')
