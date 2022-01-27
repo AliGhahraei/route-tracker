@@ -33,7 +33,7 @@ def _get_project_dir(name: str) -> Path:
 
 def _create_new_graph(name: str) -> None:
     graph = pgv.AGraph(name=name, directed=True)
-    graph.add_node(0, label='start')
+    graph.add_node(0, label='0. start')
     graph.write(_get_graph_file(name))
     echo(f'{name} created')
 
@@ -100,7 +100,7 @@ def _add_choices_to_graph(choices: Sequence[str], project_name: str) \
     graph = _get_graph(project_name)
     last_selected_choice = _get_last_selected_choice(project_name)
     for choice_label, choice_id in zip(choices, choices_ids):
-        graph.add_node(choice_id, label=choice_label)
+        graph.add_node(choice_id, label=f'{choice_id}. {choice_label}')
         graph.add_edge(last_selected_choice, choice_id)
     return graph, choices_ids
 

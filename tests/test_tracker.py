@@ -59,7 +59,7 @@ def new_runner(cli_runner: CliRunner) -> NewRunner:
 @fixture
 def starting_graph() -> pgv.AGraph:
     graph = pgv.AGraph(name='test_name', directed=True)
-    graph.add_node(0, label='start')
+    graph.add_node(0, label='0. start')
     return graph
 
 
@@ -139,7 +139,7 @@ class TestAddCommand:
         add_runner('choice1\n\n0')
 
         expected = starting_graph
-        expected.add_node(1, label='choice1')
+        expected.add_node(1, label='1. choice1')
         expected.add_edge(0, 1, color='green')
         assert_graphs_equal(test_data_dir, expected)
 
@@ -152,9 +152,9 @@ class TestAddCommand:
         add_runner('choice1\nchoice2\n\n1')
 
         expected = starting_graph
-        expected.add_node(1, label='choice1')
+        expected.add_node(1, label='1. choice1')
         expected.add_edge(0, 1)
-        expected.add_node(2, label='choice2')
+        expected.add_node(2, label='2. choice2')
         expected.add_edge(0, 2, color='green')
         assert_graphs_equal(test_data_dir, expected)
 
@@ -168,13 +168,13 @@ class TestAddCommand:
         add_runner('choice3\nchoice4\n\n0')
 
         expected = starting_graph
-        expected.add_node(1, label='choice1')
+        expected.add_node(1, label='1. choice1')
         expected.add_edge(0, 1, color='green')
-        expected.add_node(2, label='choice2')
+        expected.add_node(2, label='2. choice2')
         expected.add_edge(0, 2)
-        expected.add_node(3, label='choice3')
+        expected.add_node(3, label='3. choice3')
         expected.add_edge(1, 3, color='green')
-        expected.add_node(4, label='choice4')
+        expected.add_node(4, label='4. choice4')
         expected.add_edge(1, 4)
         assert_graphs_equal(test_data_dir, expected)
 
