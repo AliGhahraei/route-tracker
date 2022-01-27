@@ -140,7 +140,7 @@ class TestAddCommand:
 
         expected = starting_graph
         expected.add_node(1, label='choice1')
-        expected.add_edge(0, 1)
+        expected.add_edge(0, 1, color='green')
         assert_graphs_equal(test_data_dir, expected)
 
     @staticmethod
@@ -155,7 +155,7 @@ class TestAddCommand:
         expected.add_node(1, label='choice1')
         expected.add_edge(0, 1)
         expected.add_node(2, label='choice2')
-        expected.add_edge(0, 2)
+        expected.add_edge(0, 2, color='green')
         assert_graphs_equal(test_data_dir, expected)
 
     @staticmethod
@@ -169,9 +169,9 @@ class TestAddCommand:
 
         expected = starting_graph
         expected.add_node(1, label='choice1')
-        expected.add_edge(0, 1)
+        expected.add_edge(0, 1, color='green')
         expected.add_node(2, label='choice2')
-        expected.add_edge(1, 2)
+        expected.add_edge(1, 2, color='green')
         assert_graphs_equal(test_data_dir, expected)
 
     @staticmethod

@@ -52,7 +52,9 @@ def add(project_name: str) -> None:
     _get_graph(project_name)
     choices = _read_choices()
     graph, choices_ids = _add_choices_to_graph(choices, project_name)
+    last_choice = _get_last_selected_choice(project_name)
     selected_choice = _get_selected_choice(choices_ids)
+    graph.get_edge(last_choice, selected_choice).attr['color'] = 'green'
     graph.write(_get_graph_file(project_name))
     _store_choice_info(project_name, selected_choice, choices_ids[-1])
 
