@@ -164,14 +164,18 @@ class TestAddCommand:
             add_runner: AddRunner, test_data_dir: Path,
     ) -> None:
         new_runner()
-        add_runner('choice1\n\n0')
-        add_runner('choice2\n\n0')
+        add_runner('choice1\nchoice2\n\n0')
+        add_runner('choice3\nchoice4\n\n0')
 
         expected = starting_graph
         expected.add_node(1, label='choice1')
         expected.add_edge(0, 1, color='green')
         expected.add_node(2, label='choice2')
-        expected.add_edge(1, 2, color='green')
+        expected.add_edge(0, 2)
+        expected.add_node(3, label='choice3')
+        expected.add_edge(1, 3, color='green')
+        expected.add_node(4, label='choice4')
+        expected.add_edge(1, 4)
         assert_graphs_equal(test_data_dir, expected)
 
     @staticmethod

@@ -43,7 +43,7 @@ def _store_choice_info(project_name: str, last_choice: int, last_id: int) \
     with open(_get_project_dir(project_name) / 'data', 'w+') as f:
         doc = parse(f.read())
         doc['last_selected_choice'] = last_choice
-        doc['last_id'] = last_choice
+        doc['last_id'] = last_id
         f.write(dumps(doc))
 
 
