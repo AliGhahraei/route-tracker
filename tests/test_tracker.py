@@ -56,15 +56,23 @@ def new_runner(cli_runner: CliRunner) -> NewRunner:
     return runner
 
 
-@fixture
-def starting_graph() -> pgv.AGraph:
-    graph = pgv.AGraph(name='test_name', directed=True)
+def get_empty_graph() -> pgv.AGraph:
+    return pgv.AGraph(name='test_name', directed=True)
+
+
+def get_starting_graph() -> pgv.AGraph:
+    graph = get_empty_graph()
     graph.add_node(0, label='0. start')
     return graph
 
 
 def get_project_dir(data_dir: Path) -> Path:
     return data_dir / 'route-tracker' / 'test_name'
+
+
+def add_selected_node(graph: pgv.AGraph, node_id: int, label: str) -> None:
+    graph.add_node(node_id, label=label, peripheries=2,
+                   color='black:invis:black')
 
 
 def assert_graphs_equal(data_dir: Path, expected_graph: pgv.AGraph) -> None:
@@ -92,10 +100,12 @@ class TestNewCommand:
     @staticmethod
     def test_new_creates_dot_file_when_called_with_name(
             new_runner: NewRunner, test_data_dir: Path,
-            starting_graph: pgv.AGraph,
     ) -> None:
         new_runner()
-        assert_graphs_equal(test_data_dir, starting_graph)
+
+        expected_graph = get_empty_graph()
+        add_selected_node(expected_graph, 0, label='0. start')
+        assert_graphs_equal(test_data_dir, expected_graph)
 
     @staticmethod
     def test_new_exits_with_error_when_called_with_same_name_twice(
@@ -132,47 +142,44 @@ class TestAddCommand:
 
     @staticmethod
     def test_add_saves_single_choice_when_called_with_single_choice(
-            new_runner: NewRunner, starting_graph: pgv.AGraph,
-            add_runner: AddRunner, test_data_dir: Path,
+            new_runner: NewRunner, add_runner: AddRunner, test_data_dir: Path,
     ) -> None:
         new_runner()
         add_runner('choice1\n\n0')
 
-        expected = starting_graph
-        expected.add_node(1, label='1. choice1')
+        expected = get_starting_graph()
+        add_selected_node(expected, 1, label='1. choice1')
         expected.add_edge(0, 1, color='green')
         assert_graphs_equal(test_data_dir, expected)
 
     @staticmethod
     def test_add_saves_choices_when_called_with_multiple_choices(
-            new_runner: NewRunner, starting_graph: pgv.AGraph,
-            add_runner: AddRunner, test_data_dir: Path,
+            new_runner: NewRunner, add_runner: AddRunner, test_data_dir: Path,
     ) -> None:
         new_runner()
         add_runner('choice1\nchoice2\n\n1')
 
-        expected = starting_graph
+        expected = get_starting_graph()
         expected.add_node(1, label='1. choice1')
         expected.add_edge(0, 1)
-        expected.add_node(2, label='2. choice2')
+        add_selected_node(expected, 2, label='2. choice2')
         expected.add_edge(0, 2, color='green')
         assert_graphs_equal(test_data_dir, expected)
 
     @staticmethod
     def test_add_saves_choices_when_called_with_multiple_add_commands(
-            new_runner: NewRunner, starting_graph: pgv.AGraph,
-            add_runner: AddRunner, test_data_dir: Path,
+            new_runner: NewRunner, add_runner: AddRunner, test_data_dir: Path,
     ) -> None:
         new_runner()
         add_runner('choice1\nchoice2\n\n0')
         add_runner('choice3\nchoice4\n\n0')
 
-        expected = starting_graph
+        expected = get_starting_graph()
         expected.add_node(1, label='1. choice1')
         expected.add_edge(0, 1, color='green')
         expected.add_node(2, label='2. choice2')
         expected.add_edge(0, 2)
-        expected.add_node(3, label='3. choice3')
+        add_selected_node(expected, 3, label='3. choice3')
         expected.add_edge(1, 3, color='green')
         expected.add_node(4, label='4. choice4')
         expected.add_edge(1, 4)

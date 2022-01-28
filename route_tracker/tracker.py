@@ -12,6 +12,9 @@ from xdg import xdg_config_home, xdg_data_home
 app = Typer()
 
 
+SELECTED_NODE_ATTRS = {'peripheries': 2, 'color': 'black:invis:black'}
+
+
 @app.command()
 def new(name: str) -> None:
     if _get_graph_file(name).exists():
@@ -33,7 +36,7 @@ def _get_project_dir(name: str) -> Path:
 
 def _create_new_graph(name: str) -> None:
     graph = pgv.AGraph(name=name, directed=True)
-    graph.add_node(0, label='0. start')
+    graph.add_node(0, label='0. start', **SELECTED_NODE_ATTRS)
     graph.write(_get_graph_file(name))
     echo(f'{name} created')
 
@@ -54,7 +57,7 @@ def add(project_name: str) -> None:
     graph, choices_ids = _add_choices_to_graph(choices, project_name)
     last_choice = _get_last_selected_choice(project_name)
     selected_choice = _get_selected_choice(choices_ids)
-    graph.get_edge(last_choice, selected_choice).attr['color'] = 'green'
+    _update_selections(graph, last_choice, selected_choice)
     graph.write(_get_graph_file(project_name))
     _store_choice_info(project_name, selected_choice, choices_ids[-1])
 
@@ -111,10 +114,19 @@ def _get_last_id(name: str) -> int:
         return cast(int, config['last_id'])
 
 
-def _get_last_selected_choice(name: str) -> str:
+def _get_last_selected_choice(name: str) -> int:
     with open(_get_project_dir(name) / 'data') as f:
         config = parse(f.read())
-        return cast(str, config['last_selected_choice'])
+        return cast(int, config['last_selected_choice'])
+
+
+def _update_selections(
+        graph: pgv.AGraph, last_choice: int, selected_choice: int,
+) -> None:
+    del graph.get_node(last_choice).attr['peripheries']
+    del graph.get_node(last_choice).attr['color']
+    graph.get_node(selected_choice).attr.update(SELECTED_NODE_ATTRS)
+    graph.get_edge(last_choice, selected_choice).attr['color'] = 'green'
 
 
 @app.command()
