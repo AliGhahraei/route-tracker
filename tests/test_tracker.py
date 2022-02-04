@@ -9,7 +9,7 @@ from click.testing import Result
 from pytest import fixture, mark
 from typer.testing import CliRunner
 
-from route_tracker.tracker import app
+from route_tracker.tracker import add_choices_and_selection, app
 
 AddRunner = Callable[[str], Result]
 
@@ -171,8 +171,8 @@ class TestAddCommand:
             new_runner: NewRunner, add_runner: AddRunner, test_data_dir: Path,
     ) -> None:
         new_runner()
-        add_runner('choice1\nchoice2\n\n0')
-        add_runner('choice3\nchoice4\n\n0')
+        add_choices_and_selection('test_name', ['choice1', 'choice2'], 0)
+        add_choices_and_selection('test_name', ['choice3', 'choice4'], 0)
 
         expected = get_starting_graph()
         expected.add_node(1, label='1. choice1')

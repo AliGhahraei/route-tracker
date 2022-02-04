@@ -9,10 +9,8 @@ from tomlkit import document, dumps, parse
 from typer import Exit, Typer, echo
 from xdg import xdg_config_home, xdg_data_home
 
-app = Typer()
-
-
 SELECTED_NODE_ATTRS = {'peripheries': 2, 'color': 'black:invis:black'}
+app = Typer()
 
 
 @app.command()
@@ -54,12 +52,18 @@ def _store_choice_info(project_name: str, last_choice: int, last_id: int) \
 def add(project_name: str) -> None:
     _get_graph(project_name)
     choices = _read_choices()
+    selected_choice_index = _get_selected_choice_index(len(choices))
+    add_choices_and_selection(project_name, choices, selected_choice_index)
+
+
+def add_choices_and_selection(project_name: str, choices: Sequence[str],
+                              selected_choice_index: int) -> None:
     graph, choices_ids = _add_choices_to_graph(choices, project_name)
+    selected_choice_id = choices_ids[selected_choice_index]
     last_choice = _get_last_selected_choice(project_name)
-    selected_choice = _get_selected_choice(choices_ids)
-    _update_selections(graph, last_choice, selected_choice)
+    _update_selections(graph, last_choice, selected_choice_id)
     graph.write(_get_graph_file(project_name))
-    _store_choice_info(project_name, selected_choice, choices_ids[-1])
+    _store_choice_info(project_name, selected_choice_id, choices_ids[-1])
 
 
 def _get_graph(name: str) -> pgv.AGraph:
@@ -83,17 +87,17 @@ def _read_choices() -> List[str]:
     return choices
 
 
-def _get_selected_choice(choices: Sequence[int]) -> int:
+def _get_selected_choice_index(choices_number: int) -> int:
     index_input = input('Enter the zero-based index of your selection\n')
     try:
-        selected_choice = choices[int(index_input)]
+        index = int(index_input)
     except ValueError:
         echo(f'Index {index_input} is not a number', err=True)
         raise Exit(code=1)
-    except IndexError:
-        echo(f'Index {index_input} is out of bounds', err=True)
+    if index < 0 or index >= choices_number:
+        echo(f'Index {index} is out of bounds', err=True)
         raise Exit(code=1)
-    return selected_choice
+    return index
 
 
 def _add_choices_to_graph(choices: Sequence[str], project_name: str) \
