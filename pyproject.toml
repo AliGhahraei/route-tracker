@@ -33,6 +33,7 @@ Home = "https://github.com/AliGhahraei/route-tracker"
       'pragma: no cover',
       'pass',
       'if TYPE_CHECKING.*',
+      'return NotImplemented',
   ]
   fail_under = 100
   show_missing = true

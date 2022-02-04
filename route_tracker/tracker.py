@@ -4,12 +4,14 @@ from pathlib import Path
 from subprocess import run
 from typing import List, MutableMapping, Sequence, Tuple, cast
 
-import pygraphviz as pgv
 from tomlkit import document, dumps, parse
 from typer import Exit, Typer, echo
 from xdg import xdg_config_home, xdg_data_home
 
-SELECTED_NODE_ATTRS = {'peripheries': 2, 'color': 'black:invis:black'}
+from route_tracker.graph import (Graph, add_edge, add_node, add_selected_node,
+                                 deselect_node, draw, mark_edge, select_node,
+                                 store)
+
 app = Typer()
 
 
@@ -33,9 +35,9 @@ def _get_project_dir(name: str) -> Path:
 
 
 def _create_new_graph(name: str) -> None:
-    graph = pgv.AGraph(name=name, directed=True)
-    graph.add_node(0, label='0. start', **SELECTED_NODE_ATTRS)
-    graph.write(_get_graph_file(name))
+    graph = Graph(name)
+    add_selected_node(graph, 0, '0. start')
+    store(graph, _get_graph_file(name))
     echo(f'{name} created')
 
 
@@ -62,13 +64,13 @@ def add_choices_and_selection(project_name: str, choices: Sequence[str],
     selected_choice_id = choices_ids[selected_choice_index]
     last_choice = _get_last_selected_choice(project_name)
     _update_selections(graph, last_choice, selected_choice_id)
-    graph.write(_get_graph_file(project_name))
+    store(graph, _get_graph_file(project_name))
     _store_choice_info(project_name, selected_choice_id, choices_ids[-1])
 
 
-def _get_graph(name: str) -> pgv.AGraph:
+def _get_graph(name: str) -> Graph:
     try:
-        graph = pgv.AGraph(_get_graph_file(name))
+        graph = Graph(_get_graph_file(name))
     except FileNotFoundError:
         echo(f'Project {name} does not exist', err=True)
         raise Exit(code=1)
@@ -101,14 +103,14 @@ def _get_selected_choice_index(choices_number: int) -> int:
 
 
 def _add_choices_to_graph(choices: Sequence[str], project_name: str) \
-        -> Tuple[pgv.AGraph, Sequence[int]]:
+        -> Tuple[Graph, Sequence[int]]:
     next_id = _get_last_id(project_name) + 1
     choices_ids = list(range(next_id, next_id + len(choices)))
     graph = _get_graph(project_name)
     last_selected_choice = _get_last_selected_choice(project_name)
     for choice_label, choice_id in zip(choices, choices_ids):
-        graph.add_node(choice_id, label=f'{choice_id}. {choice_label}')
-        graph.add_edge(last_selected_choice, choice_id)
+        add_node(graph, choice_id, label=f'{choice_id}. {choice_label}')
+        add_edge(graph, last_selected_choice, choice_id)
     return graph, choices_ids
 
 
@@ -125,18 +127,17 @@ def _get_last_selected_choice(name: str) -> int:
 
 
 def _update_selections(
-        graph: pgv.AGraph, last_choice: int, selected_choice: int,
+        graph: Graph, last_choice: int, selected_choice: int,
 ) -> None:
-    del graph.get_node(last_choice).attr['peripheries']
-    del graph.get_node(last_choice).attr['color']
-    graph.get_node(selected_choice).attr.update(SELECTED_NODE_ATTRS)
-    graph.get_edge(last_choice, selected_choice).attr['color'] = 'green'
+    deselect_node(graph, last_choice)
+    select_node(graph, selected_choice)
+    mark_edge(graph, last_choice, selected_choice)
 
 
 @app.command()
 def view(project_name: str) -> None:
     routes_file = _get_project_dir(project_name) / 'routes.png'
-    _get_graph(project_name).draw(routes_file, prog='dot')
+    draw(_get_graph(project_name), routes_file)
     run([_get_viewer(), routes_file])
 
 

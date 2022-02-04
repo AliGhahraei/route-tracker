@@ -4,11 +4,11 @@ from pathlib import Path
 from typing import Callable, Generator, Protocol
 from unittest.mock import Mock, patch
 
-import pygraphviz as pgv
 from click.testing import Result
 from pytest import fixture, mark
 from typer.testing import CliRunner
 
+from route_tracker.graph import Graph, add_edge, add_node, add_selected_node
 from route_tracker.tracker import add_choices_and_selection, app
 
 AddRunner = Callable[[str], Result]
@@ -56,13 +56,13 @@ def new_runner(cli_runner: CliRunner) -> NewRunner:
     return runner
 
 
-def get_empty_graph() -> pgv.AGraph:
-    return pgv.AGraph(name='test_name', directed=True)
+def get_empty_graph() -> Graph:
+    return Graph('test_name')
 
 
-def get_starting_graph() -> pgv.AGraph:
+def get_starting_graph() -> Graph:
     graph = get_empty_graph()
-    graph.add_node(0, label='0. start')
+    add_node(graph, 0, '0. start')
     return graph
 
 
@@ -70,14 +70,9 @@ def get_project_dir(data_dir: Path) -> Path:
     return data_dir / 'route-tracker' / 'test_name'
 
 
-def add_selected_node(graph: pgv.AGraph, node_id: int, label: str) -> None:
-    graph.add_node(node_id, label=label, peripheries=2,
-                   color='black:invis:black')
-
-
-def assert_graphs_equal(data_dir: Path, expected_graph: pgv.AGraph) -> None:
-    graph = pgv.AGraph(get_project_dir(data_dir) / 'graph')
-    assert graph.to_string() == expected_graph.to_string()
+def assert_graphs_equal(data_dir: Path, expected_graph: Graph) -> None:
+    graph = Graph(get_project_dir(data_dir) / 'graph')
+    assert graph == expected_graph
 
 
 def assert_normal_exit(result: Result, message: str) -> None:
@@ -104,7 +99,7 @@ class TestNewCommand:
         new_runner()
 
         expected_graph = get_empty_graph()
-        add_selected_node(expected_graph, 0, label='0. start')
+        add_selected_node(expected_graph, 0, '0. start')
         assert_graphs_equal(test_data_dir, expected_graph)
 
     @staticmethod
@@ -148,8 +143,8 @@ class TestAddCommand:
         add_runner('choice1\n\n0')
 
         expected = get_starting_graph()
-        add_selected_node(expected, 1, label='1. choice1')
-        expected.add_edge(0, 1, color='green')
+        add_selected_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1, 'green')
         assert_graphs_equal(test_data_dir, expected)
 
     @staticmethod
@@ -160,10 +155,10 @@ class TestAddCommand:
         add_runner('choice1\nchoice2\n\n1')
 
         expected = get_starting_graph()
-        expected.add_node(1, label='1. choice1')
-        expected.add_edge(0, 1)
-        add_selected_node(expected, 2, label='2. choice2')
-        expected.add_edge(0, 2, color='green')
+        add_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1)
+        add_selected_node(expected, 2, '2. choice2')
+        add_edge(expected, 0, 2, 'green')
         assert_graphs_equal(test_data_dir, expected)
 
     @staticmethod
@@ -175,14 +170,14 @@ class TestAddCommand:
         add_choices_and_selection('test_name', ['choice3', 'choice4'], 0)
 
         expected = get_starting_graph()
-        expected.add_node(1, label='1. choice1')
-        expected.add_edge(0, 1, color='green')
-        expected.add_node(2, label='2. choice2')
-        expected.add_edge(0, 2)
-        add_selected_node(expected, 3, label='3. choice3')
-        expected.add_edge(1, 3, color='green')
-        expected.add_node(4, label='4. choice4')
-        expected.add_edge(1, 4)
+        add_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1, 'green')
+        add_node(expected, 2, '2. choice2')
+        add_edge(expected, 0, 2)
+        add_selected_node(expected, 3, '3. choice3')
+        add_edge(expected, 1, 3, 'green')
+        add_node(expected, 4, '4. choice4')
+        add_edge(expected, 1, 4)
         assert_graphs_equal(test_data_dir, expected)
 
     @staticmethod

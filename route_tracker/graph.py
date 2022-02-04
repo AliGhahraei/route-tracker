@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+from pathlib import Path
+from typing import Any, Optional, Union, cast
+
+import pygraphviz as pgv
+
+SELECTED_NODE_ATTRS = {'peripheries': 2, 'color': 'black:invis:black'}
+
+
+class Graph:
+    def __init__(self, name_or_path: Union[str, Path]):
+        self._graph = (pgv.AGraph(name_or_path)
+                       if isinstance(name_or_path, Path)
+                       else pgv.AGraph(name=name_or_path, directed=True))
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Graph):
+            return cast(bool,
+                        self._graph.to_string() == other._graph.to_string())
+        return NotImplemented
+
+
+def add_node(graph: Graph, node_id: int, label: str) -> None:
+    graph._graph.add_node(node_id, label=label)
+
+
+def add_selected_node(graph: Graph, node_id: int, label: str) -> None:
+    graph._graph.add_node(node_id, label=label, **SELECTED_NODE_ATTRS)
+
+
+def add_edge(graph: Graph, starting_id: int, ending_id: int,
+             color: Optional[str] = None) -> None:
+    graph._graph.add_edge(starting_id, ending_id, color=color)
+
+
+def deselect_node(graph: Graph, node_id: int) -> None:
+    node = graph._graph.get_node(node_id)
+    del node.attr['peripheries']
+    del node.attr['color']
+
+
+def select_node(graph: Graph, node_id: int) -> None:
+    graph._graph.get_node(node_id).attr.update(SELECTED_NODE_ATTRS)
+
+
+def mark_edge(graph: Graph, starting_id: int, ending_id: int) -> None:
+    graph._graph.get_edge(starting_id, ending_id).attr['color'] = 'green'
+
+
+def store(graph: Graph, path: Path) -> None:
+    graph._graph.write(path)
+
+
+def draw(graph: Graph, path: Path) -> None:
+    graph._graph.draw(path, prog='dot')
