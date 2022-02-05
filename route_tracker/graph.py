@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from typing import Optional, Union, cast
+from typing import Union, cast
 
 import pygraphviz as pgv
 
@@ -27,7 +27,7 @@ def add_selected_node(graph: Graph, node_id: int, label: str) -> None:
 
 
 def add_edge(graph: Graph, starting_id: int, ending_id: Union[int, str],
-             color: Optional[str] = None) -> None:
+             color: str = 'black') -> None:
     graph._graph.add_edge(starting_id, ending_id, color=color)
 
 
