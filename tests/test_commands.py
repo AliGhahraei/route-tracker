@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import os
 from pathlib import Path
-from typing import Callable, Generator, Protocol
-from unittest.mock import Mock, patch
+from typing import Callable, Generator, Optional, Protocol
+from unittest.mock import ANY, Mock, call, patch
 
 from click.testing import Result
-from pytest import fixture, mark
+from pytest import FixtureRequest, fixture, mark
 from typer.testing import CliRunner
 
 from route_tracker.commands import app
@@ -45,9 +45,19 @@ def test_config_dir(tmp_path: Path) -> Path:
 
 
 @fixture(autouse=True)
-def mock_run() -> Generator[Mock, None, None]:
-    with patch('route_tracker.commands.run') as mock:
+def mock_spawn() -> Generator[Mock, None, None]:
+    with patch('route_tracker.commands.Popen') as mock:
         yield mock
+
+
+@fixture(autouse=True)
+def mock_draw(request: FixtureRequest) \
+        -> Generator[Optional[Mock], None, None]:
+    if 'skip_mock_draw_autouse' in request.keywords:
+        yield None
+    else:
+        with patch('route_tracker.commands.draw') as mock:
+            yield mock
 
 
 @fixture
@@ -67,9 +77,21 @@ def get_project_dir(data_dir: Path) -> Path:
     return data_dir / 'route-tracker' / 'test_name'
 
 
+def get_image_dir(data_dir: Path) -> Path:
+    return get_project_dir(data_dir) / 'routes.png'
+
+
 def assert_stored_graph_equals(data_dir: Path, expected_graph: Graph) -> None:
     graph = Graph(get_project_dir(data_dir) / 'graph')
     assert graph.content == expected_graph.content
+
+
+def assert_draw_called(mock_draw: Mock, data_dir: Path, *,
+                       expected_calls: int = 1) -> None:
+    assert expected_calls == len(mock_draw.mock_calls)
+    mock_draw.assert_has_calls(
+        [call(ANY, get_image_dir(data_dir))] * expected_calls,
+    )
 
 
 def assert_normal_exit(result: Result, message: str) -> None:
@@ -114,9 +136,15 @@ class TestNewCommand:
         assert_normal_exit(new_runner(), 'test_name created')
         assert_normal_exit(new_runner('another_name'), 'another_name created')
 
+    @staticmethod
+    def test_new_draws_graph(
+            new_runner: NewRunner, test_data_dir: Path, mock_draw: Mock,
+    ) -> None:
+        new_runner()
+        assert_draw_called(mock_draw, test_data_dir)
+
 
 class TestChoicesCommand:
-
     @staticmethod
     def test_choices_exits_with_correct_messages_when_called_with_choices(
             new_runner: NewRunner, choices_runner: InputRunner,
@@ -139,6 +167,16 @@ class TestChoicesCommand:
         add_selected_node(expected, 1, '1. choice1')
         add_edge(expected, 0, 1, 'green')
         assert_stored_graph_equals(test_data_dir, expected)
+
+    @staticmethod
+    def test_choices_draws_graph(
+            new_runner: NewRunner, test_data_dir: Path, mock_draw: Mock,
+            choices_runner: InputRunner,
+    ) -> None:
+        new_runner()
+        choices_runner('choice1\n\n0')
+
+        assert_draw_called(mock_draw, test_data_dir, expected_calls=2)
 
     @staticmethod
     def test_choices_exits_with_error_when_called_with_no_choices(
@@ -249,6 +287,17 @@ class TestEndingCommand:
         add_edge(expected, 2, 'E1', 'green')
         assert_stored_graph_equals(test_data_dir, expected)
 
+    @staticmethod
+    def test_ending_draws_graph(
+            new_runner: NewRunner, test_data_dir: Path, mock_draw: Mock,
+            choices_runner: InputRunner, ending_runner: InputRunner,
+    ) -> None:
+        new_runner()
+        choices_runner('choice1\n\n0')
+        ending_runner('ending_label\n1\n')
+
+        assert_draw_called(mock_draw, test_data_dir, expected_calls=3)
+
 
 class TestViewCommand:
     @staticmethod
@@ -276,17 +325,17 @@ class TestViewCommand:
         assert_normal_exit(view_runner(), '')
 
     @staticmethod
+    @mark.skip_mock_draw_autouse
     def test_view_shows_existing_graph(
             new_runner: NewRunner, view_runner: ViewRunner,
-            test_data_dir: Path, mock_run: Mock,
+            test_data_dir: Path, mock_spawn: Mock,
     ) -> None:
         new_runner()
         view_runner(input_='test_viewer\n')
 
-        routes = get_project_dir(test_data_dir) / 'routes.png'
-        assert routes.exists()
-        mock_run.assert_called_once_with(
-            ['test_viewer', routes],
+        assert get_image_dir(test_data_dir).exists()
+        mock_spawn.assert_called_once_with(
+            ['test_viewer', get_image_dir(test_data_dir)],
         )
 
     @staticmethod

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 from pathlib import Path
-from subprocess import run
+from subprocess import Popen
 from typing import List, MutableMapping, NoReturn, Tuple, cast
 
 from tomlkit import document, dumps, parse
@@ -18,8 +18,10 @@ app = Typer()
 @app.command()
 def new(name: str) -> None:
     _validate_project_does_not_exist(name)
-    _store_info(create_project(name))
+    info = create_project(name)
+    _store_info(info)
     echo(f'{name} created')
+    _draw_image(info.name, info.graph)
 
 
 def _validate_project_does_not_exist(name: str) -> None:
@@ -55,6 +57,14 @@ def _store_ids(info: ProjectInfo) -> None:
         f.write(dumps(doc))
 
 
+def _draw_image(project_name: str, graph: Graph) -> None:
+    draw(graph, _get_image_path(project_name))
+
+
+def _get_image_path(project_name: str) -> Path:
+    return _get_project_dir(project_name) / 'routes.png'
+
+
 @app.command()
 def choices(project_name: str) -> None:
     info = _read_project_info(project_name)
@@ -62,6 +72,7 @@ def choices(project_name: str) -> None:
     selected_choice_index = _get_selected_choice_index(len(choices))
     add_choices_and_selection(info, choices, selected_choice_index)
     _store_info(info)
+    _draw_image(info.name, info.graph)
 
 
 def _read_project_info(name: str) -> ProjectInfo:
@@ -116,12 +127,17 @@ def ending(project_name: str) -> None:
     info = _read_project_info(project_name)
     if info.last_choice_id == 0:
         _abort('You cannot add an ending directly to the start node')
+    _add_ending(info)
+    _store_info(info)
+    _draw_image(info.name, info.graph)
+
+
+def _add_ending(info: ProjectInfo) -> None:
     ending_label, new_choice_id = _read_ending_info()
     try:
         add_ending(info, ending_label, new_choice_id)
     except InvalidNodeId:
         _abort(f'id {new_choice_id} does not exist')
-    _store_info(info)
 
 
 def _read_ending_info() -> Tuple[str, int]:
@@ -137,9 +153,8 @@ def _read_ending_info() -> Tuple[str, int]:
 
 @app.command()
 def view(project_name: str) -> None:
-    routes_file = _get_project_dir(project_name) / 'routes.png'
-    draw(_get_graph(project_name), routes_file)
-    run([_get_viewer(), routes_file])
+    _draw_image(project_name, _get_graph(project_name))
+    Popen([_get_viewer(), _get_image_path(project_name)])
 
 
 def _get_viewer() -> str:

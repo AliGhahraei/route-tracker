@@ -46,3 +46,9 @@ strict = true
   [[tool.mypy.overrides]]
   module = 'pygraphviz.*'
   ignore_missing_imports = true
+
+
+[tool.pytest.ini_options]
+markers = [
+    "skip_mock_draw_autouse",
+]
