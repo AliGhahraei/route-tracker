@@ -2,26 +2,30 @@
 import sys
 from pathlib import Path
 from subprocess import run
-from typing import List, MutableMapping, Sequence, Tuple, cast
+from typing import List, MutableMapping, cast
 
 from tomlkit import document, dumps, parse
 from typer import Exit, Typer, echo
 from xdg import xdg_config_home, xdg_data_home
 
-from route_tracker.graph import (Graph, add_edge, add_node, add_selected_node,
-                                 deselect_node, draw, mark_edge, select_node,
-                                 store)
+from route_tracker.graph import Graph, draw, store
+from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
+                                    create_project)
 
 app = Typer()
 
 
 @app.command()
 def new(name: str) -> None:
+    _validate_project_does_not_exist(name)
+    _store_info(create_project(name))
+    echo(f'{name} created')
+
+
+def _validate_project_does_not_exist(name: str) -> None:
     if _get_graph_file(name).exists():
         echo(f'{name} already exists. Ignoring...', err=True)
         raise Exit(code=1)
-    _create_new_graph(name)
-    _store_choice_info(name, 0, 0)
 
 
 def _get_graph_file(name: str) -> Path:
@@ -34,38 +38,31 @@ def _get_project_dir(name: str) -> Path:
     return data_dir
 
 
-def _create_new_graph(name: str) -> None:
-    graph = Graph(name)
-    add_selected_node(graph, 0, '0. start')
-    store(graph, _get_graph_file(name))
-    echo(f'{name} created')
+def _store_info(info: ProjectInfo) -> None:
+    store(info.graph, _get_graph_file(info.name))
+    _store_ids(info)
 
 
-def _store_choice_info(project_name: str, last_choice: int, last_id: int) \
-        -> None:
-    with open(_get_project_dir(project_name) / 'data', 'w+') as f:
+def _store_ids(info: ProjectInfo) -> None:
+    with open(_get_project_dir(info.name) / 'data', 'w+') as f:
         doc = parse(f.read())
-        doc['last_selected_choice'] = last_choice
-        doc['last_id'] = last_id
+        doc['last_selected_choice'] = info.last_choice_id
+        doc['last_id'] = info.last_generated_id
         f.write(dumps(doc))
 
 
 @app.command()
 def add(project_name: str) -> None:
-    _get_graph(project_name)
+    info = _read_project_info(project_name)
     choices = _read_choices()
     selected_choice_index = _get_selected_choice_index(len(choices))
-    add_choices_and_selection(project_name, choices, selected_choice_index)
+    add_choices_and_selection(info, choices, selected_choice_index)
+    _store_info(info)
 
 
-def add_choices_and_selection(project_name: str, choices: Sequence[str],
-                              selected_choice_index: int) -> None:
-    graph, choices_ids = _add_choices_to_graph(choices, project_name)
-    selected_choice_id = choices_ids[selected_choice_index]
-    last_choice = _get_last_selected_choice(project_name)
-    _update_selections(graph, last_choice, selected_choice_id)
-    store(graph, _get_graph_file(project_name))
-    _store_choice_info(project_name, selected_choice_id, choices_ids[-1])
+def _read_project_info(name: str) -> ProjectInfo:
+    return ProjectInfo(name, _get_graph(name), _get_last_selected_choice(name),
+                       _get_last_id(name))
 
 
 def _get_graph(name: str) -> Graph:
@@ -75,6 +72,18 @@ def _get_graph(name: str) -> Graph:
         echo(f'Project {name} does not exist', err=True)
         raise Exit(code=1)
     return graph
+
+
+def _get_last_selected_choice(name: str) -> int:
+    with open(_get_project_dir(name) / 'data') as f:
+        config = parse(f.read())
+        return cast(int, config['last_selected_choice'])
+
+
+def _get_last_id(name: str) -> int:
+    with open(_get_project_dir(name) / 'data') as f:
+        config = parse(f.read())
+        return cast(int, config['last_id'])
 
 
 def _read_choices() -> List[str]:
@@ -100,38 +109,6 @@ def _get_selected_choice_index(choices_number: int) -> int:
         echo(f'Index {index} is out of bounds', err=True)
         raise Exit(code=1)
     return index
-
-
-def _add_choices_to_graph(choices: Sequence[str], project_name: str) \
-        -> Tuple[Graph, Sequence[int]]:
-    next_id = _get_last_id(project_name) + 1
-    choices_ids = list(range(next_id, next_id + len(choices)))
-    graph = _get_graph(project_name)
-    last_selected_choice = _get_last_selected_choice(project_name)
-    for choice_label, choice_id in zip(choices, choices_ids):
-        add_node(graph, choice_id, label=f'{choice_id}. {choice_label}')
-        add_edge(graph, last_selected_choice, choice_id)
-    return graph, choices_ids
-
-
-def _get_last_id(name: str) -> int:
-    with open(_get_project_dir(name) / 'data') as f:
-        config = parse(f.read())
-        return cast(int, config['last_id'])
-
-
-def _get_last_selected_choice(name: str) -> int:
-    with open(_get_project_dir(name) / 'data') as f:
-        config = parse(f.read())
-        return cast(int, config['last_selected_choice'])
-
-
-def _update_selections(
-        graph: Graph, last_choice: int, selected_choice: int,
-) -> None:
-    deselect_node(graph, last_choice)
-    select_node(graph, selected_choice)
-    mark_edge(graph, last_choice, selected_choice)
 
 
 @app.command()

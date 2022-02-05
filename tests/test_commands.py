@@ -8,8 +8,8 @@ from click.testing import Result
 from pytest import fixture, mark
 from typer.testing import CliRunner
 
-from route_tracker.graph import Graph, add_edge, add_node, add_selected_node
-from route_tracker.tracker import add_choices_and_selection, app
+from route_tracker.commands import app
+from route_tracker.graph import Graph, add_edge, add_selected_node
 
 AddRunner = Callable[[str], Result]
 
@@ -45,7 +45,7 @@ def test_config_dir(tmp_path: Path) -> Path:
 
 @fixture(autouse=True)
 def mock_run() -> Generator[Mock, None, None]:
-    with patch('route_tracker.tracker.run') as mock:
+    with patch('route_tracker.commands.run') as mock:
         yield mock
 
 
@@ -56,23 +56,13 @@ def new_runner(cli_runner: CliRunner) -> NewRunner:
     return runner
 
 
-def get_empty_graph() -> Graph:
-    return Graph('test_name')
-
-
-def get_starting_graph() -> Graph:
-    graph = get_empty_graph()
-    add_node(graph, 0, '0. start')
-    return graph
-
-
 def get_project_dir(data_dir: Path) -> Path:
     return data_dir / 'route-tracker' / 'test_name'
 
 
-def assert_graphs_equal(data_dir: Path, expected_graph: Graph) -> None:
+def assert_stored_graph_equals(data_dir: Path, expected_graph: Graph) -> None:
     graph = Graph(get_project_dir(data_dir) / 'graph')
-    assert graph == expected_graph
+    assert graph.content == expected_graph.content
 
 
 def assert_normal_exit(result: Result, message: str) -> None:
@@ -94,13 +84,13 @@ class TestNewCommand:
 
     @staticmethod
     def test_new_creates_dot_file_when_called_with_name(
-            new_runner: NewRunner, test_data_dir: Path,
+            new_runner: NewRunner, test_data_dir: Path, empty_graph: Graph,
     ) -> None:
         new_runner()
 
-        expected_graph = get_empty_graph()
+        expected_graph = empty_graph
         add_selected_node(expected_graph, 0, '0. start')
-        assert_graphs_equal(test_data_dir, expected_graph)
+        assert_stored_graph_equals(test_data_dir, expected_graph)
 
     @staticmethod
     def test_new_exits_with_error_when_called_with_same_name_twice(
@@ -138,47 +128,15 @@ class TestAddCommand:
     @staticmethod
     def test_add_saves_single_choice_when_called_with_single_choice(
             new_runner: NewRunner, add_runner: AddRunner, test_data_dir: Path,
+            starting_graph: Graph,
     ) -> None:
         new_runner()
         add_runner('choice1\n\n0')
 
-        expected = get_starting_graph()
+        expected = starting_graph
         add_selected_node(expected, 1, '1. choice1')
         add_edge(expected, 0, 1, 'green')
-        assert_graphs_equal(test_data_dir, expected)
-
-    @staticmethod
-    def test_add_saves_choices_when_called_with_multiple_choices(
-            new_runner: NewRunner, add_runner: AddRunner, test_data_dir: Path,
-    ) -> None:
-        new_runner()
-        add_runner('choice1\nchoice2\n\n1')
-
-        expected = get_starting_graph()
-        add_node(expected, 1, '1. choice1')
-        add_edge(expected, 0, 1)
-        add_selected_node(expected, 2, '2. choice2')
-        add_edge(expected, 0, 2, 'green')
-        assert_graphs_equal(test_data_dir, expected)
-
-    @staticmethod
-    def test_add_saves_choices_when_called_with_multiple_add_commands(
-            new_runner: NewRunner, add_runner: AddRunner, test_data_dir: Path,
-    ) -> None:
-        new_runner()
-        add_choices_and_selection('test_name', ['choice1', 'choice2'], 0)
-        add_choices_and_selection('test_name', ['choice3', 'choice4'], 0)
-
-        expected = get_starting_graph()
-        add_node(expected, 1, '1. choice1')
-        add_edge(expected, 0, 1, 'green')
-        add_node(expected, 2, '2. choice2')
-        add_edge(expected, 0, 2)
-        add_selected_node(expected, 3, '3. choice3')
-        add_edge(expected, 1, 3, 'green')
-        add_node(expected, 4, '4. choice4')
-        add_edge(expected, 1, 4)
-        assert_graphs_equal(test_data_dir, expected)
+        assert_stored_graph_equals(test_data_dir, expected)
 
     @staticmethod
     def test_add_exits_with_error_when_called_with_no_choices(

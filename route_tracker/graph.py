@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from typing import Any, Optional, Union, cast
+from typing import Optional, Union, cast
 
 import pygraphviz as pgv
 
@@ -13,11 +13,9 @@ class Graph:
                        if isinstance(name_or_path, Path)
                        else pgv.AGraph(name=name_or_path, directed=True))
 
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, Graph):
-            return cast(bool,
-                        self._graph.to_string() == other._graph.to_string())
-        return NotImplemented
+    @property
+    def content(self) -> str:
+        return cast(str, self._graph.to_string())
 
 
 def add_node(graph: Graph, node_id: int, label: str) -> None:

@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-route = "route_tracker.tracker:app"
+route = "route_tracker.commands:app"
 
 [project.urls]
 Home = "https://github.com/AliGhahraei/route-tracker"

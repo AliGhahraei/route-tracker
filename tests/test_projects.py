@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+from route_tracker.graph import Graph, add_edge, add_node, add_selected_node
+from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
+                                    create_project)
+
+
+def assert_graphs_equal(info: ProjectInfo, expected_graph: Graph) -> None:
+    assert info.graph.content == expected_graph.content
+
+
+class TestAddChoicesAndSelection:
+    @staticmethod
+    def test_add_saves_single_choice_when_called_with_single_choice(
+            starting_graph: Graph,
+    ) -> None:
+        info = create_project('test_name')
+        add_choices_and_selection(info, ['choice1'], 0)
+
+        expected = starting_graph
+        add_selected_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1, 'green')
+        assert_graphs_equal(info, expected)
+
+    @staticmethod
+    def test_add_saves_choices_when_called_with_multiple_choices(
+            starting_graph: Graph,
+    ) -> None:
+        info = create_project('test_name')
+        add_choices_and_selection(info, ['choice1', 'choice2'], 1)
+
+        expected = starting_graph
+        add_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1)
+        add_selected_node(expected, 2, '2. choice2')
+        add_edge(expected, 0, 2, 'green')
+        assert_graphs_equal(info, expected)
+
+    @staticmethod
+    def test_add_saves_choices_when_called_with_multiple_add_commands(
+            starting_graph: Graph,
+    ) -> None:
+        info = create_project('test_name')
+        add_choices_and_selection(info, ['choice1', 'choice2'], 0)
+        add_choices_and_selection(info, ['choice3', 'choice4'], 0)
+
+        expected = starting_graph
+        add_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1, 'green')
+        add_node(expected, 2, '2. choice2')
+        add_edge(expected, 0, 2)
+        add_selected_node(expected, 3, '3. choice3')
+        add_edge(expected, 1, 3, 'green')
+        add_node(expected, 4, '4. choice4')
+        add_edge(expected, 1, 4)
+        assert_graphs_equal(info, expected)
