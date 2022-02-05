@@ -26,9 +26,14 @@ def add_selected_node(graph: Graph, node_id: int, label: str) -> None:
     graph._graph.add_node(node_id, label=label, **SELECTED_NODE_ATTRS)
 
 
-def add_edge(graph: Graph, starting_id: int, ending_id: int,
+def add_edge(graph: Graph, starting_id: int, ending_id: Union[int, str],
              color: Optional[str] = None) -> None:
     graph._graph.add_edge(starting_id, ending_id, color=color)
+
+
+def add_ending_node(graph: Graph, node_id: str, label: str) -> None:
+    graph._graph.add_node(node_id, label=label, fontcolor='white',
+                          fillcolor='black', style='filled')
 
 
 def deselect_node(graph: Graph, node_id: int) -> None:
@@ -38,7 +43,15 @@ def deselect_node(graph: Graph, node_id: int) -> None:
 
 
 def select_node(graph: Graph, node_id: int) -> None:
-    graph._graph.get_node(node_id).attr.update(SELECTED_NODE_ATTRS)
+    try:
+        node = graph._graph.get_node(node_id)
+    except KeyError:
+        raise InvalidNodeId
+    node.attr.update(SELECTED_NODE_ATTRS)
+
+
+class InvalidNodeId(Exception):
+    pass
 
 
 def mark_edge(graph: Graph, starting_id: int, ending_id: int) -> None:

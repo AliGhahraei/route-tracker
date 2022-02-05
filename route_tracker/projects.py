@@ -2,8 +2,9 @@
 from dataclasses import dataclass
 from typing import Sequence
 
-from route_tracker.graph import (Graph, add_edge, add_node, add_selected_node,
-                                 deselect_node, mark_edge, select_node)
+from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
+                                 add_selected_node, deselect_node, mark_edge,
+                                 select_node)
 
 
 @dataclass
@@ -52,3 +53,13 @@ def _update_selections(
     deselect_node(graph, last_choice)
     select_node(graph, selected_choice)
     mark_edge(graph, last_choice, selected_choice)
+
+
+def add_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
+        -> None:
+    add_ending_node(info.graph, 'E1', f'E1. {ending_label}')
+    last_selected_choice = info.last_choice_id
+    add_edge(info.graph, last_selected_choice, 'E1', 'green')
+    deselect_node(info.graph, last_selected_choice)
+    select_node(info.graph, new_choice_id)
+    info.last_choice_id = new_choice_id

@@ -9,9 +9,10 @@ from pytest import fixture, mark
 from typer.testing import CliRunner
 
 from route_tracker.commands import app
-from route_tracker.graph import Graph, add_edge, add_selected_node
+from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
+                                 add_selected_node)
 
-AddRunner = Callable[[str], Result]
+InputRunner = Callable[[str], Result]
 
 
 class NewRunner(Protocol):
@@ -56,6 +57,12 @@ def new_runner(cli_runner: CliRunner) -> NewRunner:
     return runner
 
 
+@fixture
+def choices_runner(cli_runner: CliRunner) -> InputRunner:
+    return lambda input_: cli_runner.invoke(app, ['choices', 'test_name'],
+                                            input=input_)
+
+
 def get_project_dir(data_dir: Path) -> Path:
     return data_dir / 'route-tracker' / 'test_name'
 
@@ -77,7 +84,7 @@ def assert_error_exit(result: Result, message: str) -> None:
 
 class TestNewCommand:
     @staticmethod
-    def test_new_exits_normally_when_called_with_name(
+    def test_new_exits_with_correct_message_when_called_with_name(
             new_runner: NewRunner,
     ) -> None:
         assert_normal_exit(new_runner(), 'test_name created')
@@ -101,37 +108,32 @@ class TestNewCommand:
                           'test_name already exists. Ignoring...')
 
     @staticmethod
-    def test_new_exits_normally_when_called_with_different_names(
+    def test_new_exits_with_correct_messages_when_called_with_different_names(
             new_runner: NewRunner,
     ) -> None:
         assert_normal_exit(new_runner(), 'test_name created')
         assert_normal_exit(new_runner('another_name'), 'another_name created')
 
 
-class TestAddCommand:
-    @staticmethod
-    @fixture
-    def add_runner(cli_runner: CliRunner) -> AddRunner:
-        return lambda input_: cli_runner.invoke(app, ['add', 'test_name'],
-                                                input=input_)
+class TestChoicesCommand:
 
     @staticmethod
-    def test_add_exits_normally_when_called_with_choices(
-            new_runner: NewRunner, add_runner: AddRunner,
+    def test_choices_exits_with_correct_messages_when_called_with_choices(
+            new_runner: NewRunner, choices_runner: InputRunner,
     ) -> None:
         new_runner()
-        assert_normal_exit(add_runner('choice1\n\n0'),
+        assert_normal_exit(choices_runner('choice1\n\n0'),
                            'Enter available choices separated by newlines. A'
                            ' blank line ends the input\nEnter the zero-based'
                            ' index of your selection')
 
     @staticmethod
-    def test_add_saves_single_choice_when_called_with_single_choice(
-            new_runner: NewRunner, add_runner: AddRunner, test_data_dir: Path,
-            starting_graph: Graph,
+    def test_choices_saves_single_choice_when_called_with_single_choice(
+            new_runner: NewRunner, choices_runner: InputRunner,
+            test_data_dir: Path, starting_graph: Graph,
     ) -> None:
         new_runner()
-        add_runner('choice1\n\n0')
+        choices_runner('choice1\n\n0')
 
         expected = starting_graph
         add_selected_node(expected, 1, '1. choice1')
@@ -139,36 +141,113 @@ class TestAddCommand:
         assert_stored_graph_equals(test_data_dir, expected)
 
     @staticmethod
-    def test_add_exits_with_error_when_called_with_no_choices(
-            new_runner: NewRunner, add_runner: AddRunner,
+    def test_choices_exits_with_error_when_called_with_no_choices(
+            new_runner: NewRunner, choices_runner: InputRunner,
     ) -> None:
         new_runner()
-        assert_error_exit(add_runner('\n'),
+        assert_error_exit(choices_runner('\n'),
                           'At least one choice must be entered')
 
     @staticmethod
     @mark.parametrize('index', [1, 2, -2])
-    def test_add_exits_with_error_when_selected_choice_is_out_of_bounds(
-            index: int, new_runner: NewRunner, add_runner: AddRunner,
+    def test_choices_exits_with_error_when_selected_choice_is_out_of_bounds(
+            index: int, new_runner: NewRunner, choices_runner: InputRunner,
     ) -> None:
         new_runner()
-        assert_error_exit(add_runner(f'choice1\n\n{index}'),
+        assert_error_exit(choices_runner(f'choice1\n\n{index}'),
                           f'Index {index} is out of bounds')
 
     @staticmethod
-    def test_add_exits_with_error_when_selected_choice_is_not_a_number(
-            new_runner: NewRunner, add_runner: AddRunner,
+    def test_choices_exits_with_error_when_selected_choice_is_not_a_number(
+            new_runner: NewRunner, choices_runner: InputRunner,
     ) -> None:
         new_runner()
-        assert_error_exit(add_runner('choice1\n\nnot_a_number'),
+        assert_error_exit(choices_runner('choice1\n\nnot_a_number'),
                           'Index not_a_number is not a number')
 
     @staticmethod
-    def test_add_aborts_if_project_does_not_exist(
-            add_runner: AddRunner,
+    def test_choices_aborts_if_project_does_not_exist(
+            choices_runner: InputRunner,
     ) -> None:
-        assert_error_exit(add_runner('choice\n\n'),
+        assert_error_exit(choices_runner('choice\n\n'),
                           'Project test_name does not exist')
+
+
+class TestEndingCommand:
+    @staticmethod
+    @fixture
+    def ending_runner(cli_runner: CliRunner) -> InputRunner:
+        return lambda input_: cli_runner.invoke(app, ['ending', 'test_name'],
+                                                input=input_)
+
+    @staticmethod
+    def test_ending_aborts_if_project_does_not_exist(
+            ending_runner: InputRunner,
+    ) -> None:
+        assert_error_exit(ending_runner('ending\n'),
+                          'Project test_name does not exist')
+
+    @staticmethod
+    def test_ending_aborts_when_called_before_any_choice_is_added(
+            new_runner: NewRunner, ending_runner: InputRunner,
+    ) -> None:
+        new_runner()
+        assert_error_exit(ending_runner('ending\n'),
+                          "You cannot add an ending directly to the start"
+                          " node")
+
+    @staticmethod
+    def test_ending_aborts_when_called_with_non_integer_id(
+            new_runner: NewRunner, choices_runner: InputRunner,
+            ending_runner: InputRunner, starting_graph: Graph,
+            test_data_dir: Path,
+    ) -> None:
+        new_runner()
+        choices_runner('choice1\n\n0')
+        assert_error_exit(ending_runner('ending\ninvalid_index\n'),
+                          "The id must be an integer")
+
+    @staticmethod
+    def test_ending_aborts_when_called_with_non_existing_id(
+            new_runner: NewRunner, choices_runner: InputRunner,
+            ending_runner: InputRunner, starting_graph: Graph,
+            test_data_dir: Path,
+    ) -> None:
+        new_runner()
+        choices_runner('choice1\n\n0')
+        assert_error_exit(ending_runner('ending\n999\n'),
+                          "id 999 does not exist")
+
+    @staticmethod
+    def test_ending_exits_with_correct_messages_when_called_with_ending(
+            new_runner: NewRunner, choices_runner: InputRunner,
+            ending_runner: InputRunner,
+    ) -> None:
+        new_runner()
+        choices_runner('choice1\nchoice2\n\n0')
+        assert_normal_exit(ending_runner('ending\n1\n'),
+                           "Enter the ending's label\nEnter the id of an"
+                           ' existing choice to be selected as the current'
+                           ' choice\n')
+
+    @staticmethod
+    def test_ending_adds_ending_node_and_changes_selected_node(
+            new_runner: NewRunner, choices_runner: InputRunner,
+            ending_runner: InputRunner, starting_graph: Graph,
+            test_data_dir: Path,
+    ) -> None:
+        new_runner()
+        choices_runner('choice1\nchoice2\n\n1')
+        ending_runner('ending_label\n1\n')
+
+        expected = starting_graph
+        add_selected_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1)
+        add_node(expected, 2, '2. choice2')
+        add_edge(expected, 0, 2, 'green')
+        add_ending_node(expected, 'E1', 'E1. ending_label')
+        add_edge(expected, 2, 'E1', 'green')
+        assert_stored_graph_equals(test_data_dir, expected)
 
 
 class TestViewCommand:

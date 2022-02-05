@@ -2,15 +2,15 @@
 import sys
 from pathlib import Path
 from subprocess import run
-from typing import List, MutableMapping, cast
+from typing import List, MutableMapping, NoReturn, Tuple, cast
 
 from tomlkit import document, dumps, parse
 from typer import Exit, Typer, echo
 from xdg import xdg_config_home, xdg_data_home
 
-from route_tracker.graph import Graph, draw, store
+from route_tracker.graph import Graph, InvalidNodeId, draw, store
 from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
-                                    create_project)
+                                    add_ending, create_project)
 
 app = Typer()
 
@@ -24,8 +24,12 @@ def new(name: str) -> None:
 
 def _validate_project_does_not_exist(name: str) -> None:
     if _get_graph_file(name).exists():
-        echo(f'{name} already exists. Ignoring...', err=True)
-        raise Exit(code=1)
+        _abort(f'{name} already exists. Ignoring...')
+
+
+def _abort(message: str) -> NoReturn:
+    echo(message, err=True)
+    raise Exit(code=1)
 
 
 def _get_graph_file(name: str) -> Path:
@@ -52,7 +56,7 @@ def _store_ids(info: ProjectInfo) -> None:
 
 
 @app.command()
-def add(project_name: str) -> None:
+def choices(project_name: str) -> None:
     info = _read_project_info(project_name)
     choices = _read_choices()
     selected_choice_index = _get_selected_choice_index(len(choices))
@@ -69,8 +73,7 @@ def _get_graph(name: str) -> Graph:
     try:
         graph = Graph(_get_graph_file(name))
     except FileNotFoundError:
-        echo(f'Project {name} does not exist', err=True)
-        raise Exit(code=1)
+        _abort(f'Project {name} does not exist')
     return graph
 
 
@@ -93,8 +96,7 @@ def _read_choices() -> List[str]:
     while (line := sys.stdin.readline()) != '\n':
         choices.append(line.rstrip())
     if not choices:
-        echo('At least one choice must be entered', err=True)
-        raise Exit(code=1)
+        _abort('At least one choice must be entered')
     return choices
 
 
@@ -103,12 +105,34 @@ def _get_selected_choice_index(choices_number: int) -> int:
     try:
         index = int(index_input)
     except ValueError:
-        echo(f'Index {index_input} is not a number', err=True)
-        raise Exit(code=1)
+        _abort(f'Index {index_input} is not a number')
     if index < 0 or index >= choices_number:
-        echo(f'Index {index} is out of bounds', err=True)
-        raise Exit(code=1)
+        _abort(f'Index {index} is out of bounds')
     return index
+
+
+@app.command()
+def ending(project_name: str) -> None:
+    info = _read_project_info(project_name)
+    if info.last_choice_id == 0:
+        _abort('You cannot add an ending directly to the start node')
+    ending_label, new_choice_id = _read_ending_info()
+    try:
+        add_ending(info, ending_label, new_choice_id)
+    except InvalidNodeId:
+        _abort(f'id {new_choice_id} does not exist')
+    _store_info(info)
+
+
+def _read_ending_info() -> Tuple[str, int]:
+    ending_label = input("Enter the ending's label\n")
+    new_choice_input = input('Enter the id of an existing choice to be'
+                             ' selected as the current choice\n')
+    try:
+        new_choice_id = int(new_choice_input)
+    except ValueError:
+        _abort('The id must be an integer')
+    return ending_label, new_choice_id
 
 
 @app.command()
