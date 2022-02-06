@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Mapping, NoReturn, Tuple, cast
+from typing import Generator, Mapping, NoReturn, Tuple, cast
 
 from tomlkit import dumps, parse
 from typer import Context, Exit, echo
 from xdg import xdg_data_home
 
-from route_tracker.graph import Graph, draw, store
+from route_tracker.graph import Graph, InvalidNodeId, draw, store
 from route_tracker.projects import ProjectInfo
 
 
@@ -43,6 +44,14 @@ def draw_image(project_name: str, graph: Graph) -> None:
 
 def get_image_path(project_name: str) -> Path:
     return get_project_dir(project_name) / 'routes.png'
+
+
+@contextmanager
+def abort_on_invalid_id() -> Generator[None, None, None]:
+    try:
+        yield
+    except InvalidNodeId as e:
+        abort(f'id {e.node_id} does not exist')
 
 
 def read_project_info(name: str) -> ProjectInfo:

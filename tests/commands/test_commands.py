@@ -212,6 +212,68 @@ class TestAddChoicesCommand:
                           'Project test_name does not exist')
 
 
+class TestAdvanceChoice:
+    @staticmethod
+    @fixture
+    def advance_choices_runner(cli_runner: CliRunner) -> InputRunner:
+        return lambda input_: cli_runner.invoke(
+            app, ['test_name', 'choices', 'advance'], input=input_,
+        )
+
+    @staticmethod
+    def test_advance_aborts_if_project_does_not_exist(
+            advance_choices_runner: InputRunner,
+    ) -> None:
+        assert_error_exit(advance_choices_runner('0'),
+                          'Project test_name does not exist')
+
+    @staticmethod
+    def test_advance_aborts_when_called_with_non_existing_id(
+            new_runner: NewRunner, advance_choices_runner: InputRunner,
+    ) -> None:
+        new_runner()
+        assert_error_exit(advance_choices_runner('999'),
+                          "id 999 does not exist")
+
+    @staticmethod
+    def test_advance_aborts_when_called_with_currently_selected_id(
+            new_runner: NewRunner, advance_choices_runner: InputRunner,
+    ) -> None:
+        new_runner()
+        assert_error_exit(advance_choices_runner('0'),
+                          "Cannot advance currently selected node to itself")
+
+    @staticmethod
+    def test_advance_advances_to_id(
+            new_runner: NewRunner, add_choices_runner: InputRunner,
+            test_data_dir: Path, starting_graph: Graph,
+            advance_choices_runner: InputRunner,
+    ) -> None:
+        new_runner()
+        add_choices_runner('choice1\nchoice2\n\n0')
+        advance_choices_runner('2')
+
+        expected = starting_graph
+        add_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1, 'green')
+        add_selected_node(expected, 2, '2. choice2')
+        add_edge(expected, 0, 2)
+        add_edge(expected, 1, 2, 'green')
+        assert_stored_graph_equals(test_data_dir, expected)
+
+    @staticmethod
+    def test_advance_draws_image(
+            new_runner: NewRunner, add_choices_runner: InputRunner,
+            test_data_dir: Path, mock_draw: Mock,
+            advance_choices_runner: InputRunner,
+    ) -> None:
+        new_runner()
+        add_choices_runner('choice1\nchoice2\n\n0')
+        advance_choices_runner('2')
+
+        assert_draw_called(mock_draw, test_data_dir, expected_calls=3)
+
+
 class TestEndingCommand:
     @staticmethod
     @fixture

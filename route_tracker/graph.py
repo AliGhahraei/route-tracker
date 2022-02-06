@@ -46,12 +46,14 @@ def select_node(graph: Graph, node_id: int) -> None:
     try:
         node = graph._graph.get_node(node_id)
     except KeyError:
-        raise InvalidNodeId
+        raise InvalidNodeId(node_id)
     node.attr.update(SELECTED_NODE_ATTRS)
 
 
 class InvalidNodeId(Exception):
-    pass
+    def __init__(self, node_id: int):
+        self.node_id = node_id
+        super().__init__(node_id)
 
 
 def mark_edge(graph: Graph, starting_id: int, ending_id: int, color: str) \

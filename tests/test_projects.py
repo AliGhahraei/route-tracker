@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-from route_tracker.graph import Graph, add_edge, add_node, add_selected_node, add_ending_node
+from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
+                                 add_selected_node)
 from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
-                                    create_project, add_ending)
+                                    add_ending, create_project)
 
 
 def assert_graphs_equal(info: ProjectInfo, expected_graph: Graph) -> None:

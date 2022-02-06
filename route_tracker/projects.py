@@ -34,7 +34,6 @@ def add_choices_and_selection(info: ProjectInfo, choices: Sequence[str],
     choices_ids = _add_choices_to_graph(choices, info)
     selected_choice_id = choices_ids[selected_choice_index]
     _update_selection(info, selected_choice_id)
-    info.last_choice_id = selected_choice_id
     info.last_generated_id = choices_ids[-1]
 
 
@@ -57,6 +56,7 @@ def _update_selection(
     select_node(info.graph, selected_choice)
     mark_edge(info.graph, info.last_choice_id, selected_choice,
               ROUTE_COLORS[info.next_ending_id])
+    info.last_choice_id = selected_choice
 
 
 def add_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
@@ -71,3 +71,11 @@ def add_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
     select_node(info.graph, new_choice_id)
     info.last_choice_id = new_choice_id
     info.next_ending_id = numeric_ending_id + 1
+
+
+def advance_to_choice(info: ProjectInfo, selected_id: int) -> None:
+    deselect_node(info.graph, info.last_choice_id)
+    select_node(info.graph, selected_id)
+    add_edge(info.graph, info.last_choice_id, selected_id,
+             ROUTE_COLORS[info.next_ending_id])
+    info.last_choice_id = selected_id

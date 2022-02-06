@@ -8,11 +8,10 @@ from typer import Context, Option, Typer, echo
 from xdg import xdg_config_home
 
 from route_tracker.commands.choices import app as choices_app
-from route_tracker.graph import InvalidNodeId
-from route_tracker.io import (ProjectContext, abort, draw_image, get_graph,
-                              get_graph_file, get_image_path,
-                              read_project_info, store_info)
-from route_tracker.projects import ProjectInfo, add_ending, create_project
+from route_tracker.io import (ProjectContext, abort, abort_on_invalid_id,
+                              draw_image, get_graph, get_graph_file,
+                              get_image_path, read_project_info, store_info)
+from route_tracker.projects import add_ending, create_project
 
 app = Typer()
 app.add_typer(choices_app, name='choices')
@@ -42,25 +41,18 @@ def _validate_project_does_not_exist(name: str) -> None:
 def ending(
         ctx: ProjectContext,
         ending_label: str = Option(..., prompt=True),
-        new_choice_input: int = Option(..., prompt='Enter the id of an'
-                                       ' existing choice to be selected as the'
-                                       ' current choice'),
+        new_choice_id: int = Option(..., prompt='Enter the id of an existing'
+                                    ' choice to be selected as the current'
+                                    ' choice'),
 ) -> None:
     project_name = ctx.obj
     info = read_project_info(project_name)
     if info.last_choice_id == 0:
         abort('You cannot add an ending directly to the start node')
-    _add_ending(info, ending_label, new_choice_input)
+    with abort_on_invalid_id():
+        add_ending(info, ending_label, new_choice_id)
     store_info(info)
     draw_image(info.name, info.graph)
-
-
-def _add_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
-        -> None:
-    try:
-        add_ending(info, ending_label, new_choice_id)
-    except InvalidNodeId:
-        abort(f'id {new_choice_id} does not exist')
 
 
 @app.command()
