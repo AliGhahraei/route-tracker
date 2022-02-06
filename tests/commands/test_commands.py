@@ -56,7 +56,7 @@ def mock_draw(request: FixtureRequest) \
     if 'skip_mock_draw_autouse' in request.keywords:
         yield None
     else:
-        with patch('route_tracker.commands.draw') as mock:
+        with patch('route_tracker.io.draw') as mock:
             yield mock
 
 
