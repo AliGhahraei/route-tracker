@@ -7,7 +7,7 @@ from tomlkit import document, dumps, parse
 from typer import Context, Typer, echo
 from xdg import xdg_config_home
 
-from route_tracker.commands.choices import choices
+from route_tracker.commands.choices import app as choices_app
 from route_tracker.graph import InvalidNodeId
 from route_tracker.io import (ProjectContext, abort, draw_image, get_graph,
                               get_graph_file, get_image_path,
@@ -15,7 +15,7 @@ from route_tracker.io import (ProjectContext, abort, draw_image, get_graph,
 from route_tracker.projects import ProjectInfo, add_ending, create_project
 
 app = Typer()
-app.command()(choices)
+app.add_typer(choices_app, name='choices')
 
 
 @app.callback()

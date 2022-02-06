@@ -68,9 +68,10 @@ def new_runner(cli_runner: CliRunner) -> NewRunner:
 
 
 @fixture
-def choices_runner(cli_runner: CliRunner) -> InputRunner:
-    return lambda input_: cli_runner.invoke(app, ['test_name', 'choices'],
-                                            input=input_)
+def add_choices_runner(cli_runner: CliRunner) -> InputRunner:
+    return lambda input_: cli_runner.invoke(
+        app, ['test_name', 'choices', 'add'], input=input_,
+    )
 
 
 def get_project_dir(data_dir: Path) -> Path:
@@ -144,24 +145,24 @@ class TestNewCommand:
         assert_draw_called(mock_draw, test_data_dir)
 
 
-class TestChoicesCommand:
+class TestAddChoicesCommand:
     @staticmethod
-    def test_choices_exits_with_correct_messages_when_called_with_choices(
-            new_runner: NewRunner, choices_runner: InputRunner,
+    def test_add_exits_with_correct_messages_when_called_with_choices(
+            new_runner: NewRunner, add_choices_runner: InputRunner,
     ) -> None:
         new_runner()
-        assert_normal_exit(choices_runner('choice1\n\n0'),
+        assert_normal_exit(add_choices_runner('choice1\n\n0'),
                            'Enter available choices separated by newlines. A'
                            ' blank line ends the input\nEnter the zero-based'
                            ' index of your selection')
 
     @staticmethod
-    def test_choices_saves_single_choice_when_called_with_single_choice(
-            new_runner: NewRunner, choices_runner: InputRunner,
+    def test_add_saves_single_choice_when_called_with_single_choice(
+            new_runner: NewRunner, add_choices_runner: InputRunner,
             test_data_dir: Path, starting_graph: Graph,
     ) -> None:
         new_runner()
-        choices_runner('choice1\n\n0')
+        add_choices_runner('choice1\n\n0')
 
         expected = starting_graph
         add_selected_node(expected, 1, '1. choice1')
@@ -169,45 +170,45 @@ class TestChoicesCommand:
         assert_stored_graph_equals(test_data_dir, expected)
 
     @staticmethod
-    def test_choices_draws_graph(
+    def test_add_draws_graph(
             new_runner: NewRunner, test_data_dir: Path, mock_draw: Mock,
-            choices_runner: InputRunner,
+            add_choices_runner: InputRunner,
     ) -> None:
         new_runner()
-        choices_runner('choice1\n\n0')
+        add_choices_runner('choice1\n\n0')
 
         assert_draw_called(mock_draw, test_data_dir, expected_calls=2)
 
     @staticmethod
-    def test_choices_exits_with_error_when_called_with_no_choices(
-            new_runner: NewRunner, choices_runner: InputRunner,
+    def test_add_exits_with_error_when_called_with_no_choices(
+            new_runner: NewRunner, add_choices_runner: InputRunner,
     ) -> None:
         new_runner()
-        assert_error_exit(choices_runner('\n'),
+        assert_error_exit(add_choices_runner('\n'),
                           'At least one choice must be entered')
 
     @staticmethod
     @mark.parametrize('index', [1, 2, -2])
-    def test_choices_exits_with_error_when_selected_choice_is_out_of_bounds(
-            index: int, new_runner: NewRunner, choices_runner: InputRunner,
+    def test_add_exits_with_error_when_selected_choice_is_out_of_bounds(
+            index: int, new_runner: NewRunner, add_choices_runner: InputRunner,
     ) -> None:
         new_runner()
-        assert_error_exit(choices_runner(f'choice1\n\n{index}'),
+        assert_error_exit(add_choices_runner(f'choice1\n\n{index}'),
                           f'Index {index} is out of bounds')
 
     @staticmethod
-    def test_choices_exits_with_error_when_selected_choice_is_not_a_number(
-            new_runner: NewRunner, choices_runner: InputRunner,
+    def test_add_exits_with_error_when_selected_choice_is_not_a_number(
+            new_runner: NewRunner, add_choices_runner: InputRunner,
     ) -> None:
         new_runner()
-        assert_error_exit(choices_runner('choice1\n\nnot_a_number'),
+        assert_error_exit(add_choices_runner('choice1\n\nnot_a_number'),
                           'Index not_a_number is not a number')
 
     @staticmethod
-    def test_choices_aborts_if_project_does_not_exist(
-            choices_runner: InputRunner,
+    def test_add_aborts_if_project_does_not_exist(
+            add_choices_runner: InputRunner,
     ) -> None:
-        assert_error_exit(choices_runner('choice\n\n'),
+        assert_error_exit(add_choices_runner('choice\n\n'),
                           'Project test_name does not exist')
 
 
@@ -236,33 +237,33 @@ class TestEndingCommand:
 
     @staticmethod
     def test_ending_aborts_when_called_with_non_integer_id(
-            new_runner: NewRunner, choices_runner: InputRunner,
+            new_runner: NewRunner, add_choices_runner: InputRunner,
             ending_runner: InputRunner, starting_graph: Graph,
             test_data_dir: Path,
     ) -> None:
         new_runner()
-        choices_runner('choice1\n\n0')
+        add_choices_runner('choice1\n\n0')
         assert_error_exit(ending_runner('ending\ninvalid_index\n'),
                           "The id must be an integer")
 
     @staticmethod
     def test_ending_aborts_when_called_with_non_existing_id(
-            new_runner: NewRunner, choices_runner: InputRunner,
+            new_runner: NewRunner, add_choices_runner: InputRunner,
             ending_runner: InputRunner, starting_graph: Graph,
             test_data_dir: Path,
     ) -> None:
         new_runner()
-        choices_runner('choice1\n\n0')
+        add_choices_runner('choice1\n\n0')
         assert_error_exit(ending_runner('ending\n999\n'),
                           "id 999 does not exist")
 
     @staticmethod
     def test_ending_exits_with_correct_messages_when_called_with_ending(
-            new_runner: NewRunner, choices_runner: InputRunner,
+            new_runner: NewRunner, add_choices_runner: InputRunner,
             ending_runner: InputRunner,
     ) -> None:
         new_runner()
-        choices_runner('choice1\nchoice2\n\n0')
+        add_choices_runner('choice1\nchoice2\n\n0')
         assert_normal_exit(ending_runner('ending\n1\n'),
                            "Enter the ending's label\nEnter the id of an"
                            ' existing choice to be selected as the current'
@@ -270,12 +271,12 @@ class TestEndingCommand:
 
     @staticmethod
     def test_ending_adds_ending_node_and_changes_selected_node(
-            new_runner: NewRunner, choices_runner: InputRunner,
+            new_runner: NewRunner, add_choices_runner: InputRunner,
             ending_runner: InputRunner, starting_graph: Graph,
             test_data_dir: Path,
     ) -> None:
         new_runner()
-        choices_runner('choice1\nchoice2\n\n1')
+        add_choices_runner('choice1\nchoice2\n\n1')
         ending_runner('ending_label\n1\n')
 
         expected = starting_graph
@@ -290,10 +291,10 @@ class TestEndingCommand:
     @staticmethod
     def test_ending_draws_graph(
             new_runner: NewRunner, test_data_dir: Path, mock_draw: Mock,
-            choices_runner: InputRunner, ending_runner: InputRunner,
+            add_choices_runner: InputRunner, ending_runner: InputRunner,
     ) -> None:
         new_runner()
-        choices_runner('choice1\n\n0')
+        add_choices_runner('choice1\n\n0')
         ending_runner('ending_label\n1\n')
 
         assert_draw_called(mock_draw, test_data_dir, expected_calls=3)

@@ -2,14 +2,17 @@
 import sys
 from typing import List
 
-from typer import echo
+from typer import Typer, echo
 
 from route_tracker.io import (ProjectContext, abort, draw_image,
                               read_project_info, store_info)
 from route_tracker.projects import add_choices_and_selection
 
+app = Typer()
 
-def choices(ctx: ProjectContext) -> None:
+
+@app.command()
+def add(ctx: ProjectContext) -> None:
     project_name = ctx.obj
     info = read_project_info(project_name)
     choices = _read_choices()
