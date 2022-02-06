@@ -5,7 +5,7 @@ from subprocess import Popen
 from typing import List, MutableMapping, NoReturn, Tuple, cast
 
 from tomlkit import document, dumps, parse
-from typer import Exit, Typer, echo
+from typer import Context, Exit, Typer, echo
 from xdg import xdg_config_home, xdg_data_home
 
 from route_tracker.graph import Graph, InvalidNodeId, draw, store
@@ -15,8 +15,18 @@ from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
 app = Typer()
 
 
+class ProjectContext(Context):
+    obj: str
+
+
+@app.callback()
+def run(ctx: Context, project_name: str) -> None:
+    ctx.obj = project_name
+
+
 @app.command()
-def new(name: str) -> None:
+def new(ctx: ProjectContext) -> None:
+    name = ctx.obj
     _validate_project_does_not_exist(name)
     info = create_project(name)
     _store_info(info)
@@ -66,7 +76,8 @@ def _get_image_path(project_name: str) -> Path:
 
 
 @app.command()
-def choices(project_name: str) -> None:
+def choices(ctx: ProjectContext) -> None:
+    project_name = ctx.obj
     info = _read_project_info(project_name)
     choices = _read_choices()
     selected_choice_index = _get_selected_choice_index(len(choices))
@@ -123,7 +134,8 @@ def _get_selected_choice_index(choices_number: int) -> int:
 
 
 @app.command()
-def ending(project_name: str) -> None:
+def ending(ctx: ProjectContext) -> None:
+    project_name = ctx.obj
     info = _read_project_info(project_name)
     if info.last_choice_id == 0:
         _abort('You cannot add an ending directly to the start node')
@@ -152,7 +164,8 @@ def _read_ending_info() -> Tuple[str, int]:
 
 
 @app.command()
-def view(project_name: str) -> None:
+def view(ctx: ProjectContext) -> None:
+    project_name = ctx.obj
     _draw_image(project_name, _get_graph(project_name))
     Popen([_get_viewer(), _get_image_path(project_name)])
 

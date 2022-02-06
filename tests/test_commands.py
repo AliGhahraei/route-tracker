@@ -63,13 +63,13 @@ def mock_draw(request: FixtureRequest) \
 @fixture
 def new_runner(cli_runner: CliRunner) -> NewRunner:
     def runner(project_name: str = 'test_name') -> Result:
-        return cli_runner.invoke(app, ['new', project_name])
+        return cli_runner.invoke(app, [project_name, 'new'])
     return runner
 
 
 @fixture
 def choices_runner(cli_runner: CliRunner) -> InputRunner:
-    return lambda input_: cli_runner.invoke(app, ['choices', 'test_name'],
+    return lambda input_: cli_runner.invoke(app, ['test_name', 'choices'],
                                             input=input_)
 
 
@@ -215,7 +215,7 @@ class TestEndingCommand:
     @staticmethod
     @fixture
     def ending_runner(cli_runner: CliRunner) -> InputRunner:
-        return lambda input_: cli_runner.invoke(app, ['ending', 'test_name'],
+        return lambda input_: cli_runner.invoke(app, ['test_name', 'ending'],
                                                 input=input_)
 
     @staticmethod
@@ -305,7 +305,7 @@ class TestViewCommand:
     def view_runner(cli_runner: CliRunner) -> ViewRunner:
         def runner(project_name: str = 'test_name', input_: str = '') \
                 -> Result:
-            return cli_runner.invoke(app, ['view', project_name], input=input_)
+            return cli_runner.invoke(app, [project_name, 'view'], input=input_)
         return runner
 
     @staticmethod
