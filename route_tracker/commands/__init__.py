@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 from pathlib import Path
 from subprocess import Popen
-from typing import MutableMapping, Tuple
+from typing import MutableMapping
 
 from tomlkit import document, dumps, parse
-from typer import Context, Typer, echo
+from typer import Context, Option, Typer, echo
 from xdg import xdg_config_home
 
 from route_tracker.commands.choices import app as choices_app
@@ -39,33 +39,28 @@ def _validate_project_does_not_exist(name: str) -> None:
 
 
 @app.command()
-def ending(ctx: ProjectContext) -> None:
+def ending(
+        ctx: ProjectContext,
+        ending_label: str = Option(..., prompt=True),
+        new_choice_input: int = Option(..., prompt='Enter the id of an'
+                                       ' existing choice to be selected as the'
+                                       ' current choice'),
+) -> None:
     project_name = ctx.obj
     info = read_project_info(project_name)
     if info.last_choice_id == 0:
         abort('You cannot add an ending directly to the start node')
-    _add_ending(info)
+    _add_ending(info, ending_label, new_choice_input)
     store_info(info)
     draw_image(info.name, info.graph)
 
 
-def _add_ending(info: ProjectInfo) -> None:
-    ending_label, new_choice_id = _read_ending_info()
+def _add_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
+        -> None:
     try:
         add_ending(info, ending_label, new_choice_id)
     except InvalidNodeId:
         abort(f'id {new_choice_id} does not exist')
-
-
-def _read_ending_info() -> Tuple[str, int]:
-    ending_label = input("Enter the ending's label\n")
-    new_choice_input = input('Enter the id of an existing choice to be'
-                             ' selected as the current choice\n')
-    try:
-        new_choice_id = int(new_choice_input)
-    except ValueError:
-        abort('The id must be an integer')
-    return ending_label, new_choice_id
 
 
 @app.command()

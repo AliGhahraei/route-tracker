@@ -223,7 +223,7 @@ class TestEndingCommand:
     def test_ending_aborts_if_project_does_not_exist(
             ending_runner: InputRunner,
     ) -> None:
-        assert_error_exit(ending_runner('ending\n'),
+        assert_error_exit(ending_runner('ending\n0'),
                           'Project test_name does not exist')
 
     @staticmethod
@@ -231,20 +231,9 @@ class TestEndingCommand:
             new_runner: NewRunner, ending_runner: InputRunner,
     ) -> None:
         new_runner()
-        assert_error_exit(ending_runner('ending\n'),
+        assert_error_exit(ending_runner('ending\n0'),
                           "You cannot add an ending directly to the start"
                           " node")
-
-    @staticmethod
-    def test_ending_aborts_when_called_with_non_integer_id(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
-            ending_runner: InputRunner, starting_graph: Graph,
-            test_data_dir: Path,
-    ) -> None:
-        new_runner()
-        add_choices_runner('choice1\n\n0')
-        assert_error_exit(ending_runner('ending\ninvalid_index\n'),
-                          "The id must be an integer")
 
     @staticmethod
     def test_ending_aborts_when_called_with_non_existing_id(
@@ -265,9 +254,8 @@ class TestEndingCommand:
         new_runner()
         add_choices_runner('choice1\nchoice2\n\n0')
         assert_normal_exit(ending_runner('ending\n1\n'),
-                           "Enter the ending's label\nEnter the id of an"
-                           ' existing choice to be selected as the current'
-                           ' choice\n')
+                           "Ending label: ending\nEnter the id of an existing"
+                           ' choice to be selected as the current choice: 1\n')
 
     @staticmethod
     def test_ending_adds_ending_node_and_changes_selected_node(
