@@ -272,8 +272,8 @@ class TestEndingCommand:
         add_edge(expected, 0, 1)
         add_node(expected, 2, '2. choice2')
         add_edge(expected, 0, 2, 'green')
-        add_ending_node(expected, 'E1', 'E1. ending_label')
-        add_edge(expected, 2, 'E1', 'green')
+        add_ending_node(expected, 'E0', 'E0. ending_label')
+        add_edge(expected, 2, 'E0', 'green')
         assert_stored_graph_equals(test_data_dir, expected)
 
     @staticmethod

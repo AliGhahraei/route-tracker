@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from typing import NoReturn, cast
+from typing import Mapping, NoReturn, Tuple, cast
 
 from tomlkit import dumps, parse
 from typer import Context, Exit, echo
@@ -46,20 +46,14 @@ def get_image_path(project_name: str) -> Path:
 
 
 def read_project_info(name: str) -> ProjectInfo:
-    return ProjectInfo(name, get_graph(name), _get_last_selected_choice(name),
-                       _get_last_id(name))
+    return ProjectInfo(name, get_graph(name), *_get_ids(name))
 
 
-def _get_last_selected_choice(name: str) -> int:
+def _get_ids(name: str) -> Tuple[int, int, int]:
     with open(get_project_dir(name) / 'data') as f:
-        config = parse(f.read())
-        return cast(int, config['last_selected_choice'])
-
-
-def _get_last_id(name: str) -> int:
-    with open(get_project_dir(name) / 'data') as f:
-        config = parse(f.read())
-        return cast(int, config['last_id'])
+        config = cast(Mapping[str, int], parse(f.read()))
+        return (config['last_selected_choice'], config['last_id'],
+                config['next_ending_id'])
 
 
 def store_info(info: ProjectInfo) -> None:
@@ -72,4 +66,5 @@ def _store_ids(info: ProjectInfo) -> None:
         doc = parse(f.read())
         doc['last_selected_choice'] = info.last_choice_id
         doc['last_id'] = info.last_generated_id
+        doc['next_ending_id'] = info.next_ending_id
         f.write(dumps(doc))

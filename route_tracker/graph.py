@@ -54,8 +54,9 @@ class InvalidNodeId(Exception):
     pass
 
 
-def mark_edge(graph: Graph, starting_id: int, ending_id: int) -> None:
-    graph._graph.get_edge(starting_id, ending_id).attr['color'] = 'green'
+def mark_edge(graph: Graph, starting_id: int, ending_id: int, color: str) \
+        -> None:
+    graph._graph.get_edge(starting_id, ending_id).attr['color'] = color
 
 
 def store(graph: Graph, path: Path) -> None:

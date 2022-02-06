@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-from route_tracker.graph import Graph, add_edge, add_node, add_selected_node
+from route_tracker.graph import Graph, add_edge, add_node, add_selected_node, add_ending_node
 from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
-                                    create_project)
+                                    create_project, add_ending)
 
 
 def assert_graphs_equal(info: ProjectInfo, expected_graph: Graph) -> None:
@@ -52,4 +52,29 @@ class TestAddChoicesAndSelection:
         add_edge(expected, 1, 3, 'green')
         add_node(expected, 4, '4. choice4')
         add_edge(expected, 1, 4)
+        assert_graphs_equal(info, expected)
+
+
+class TestAddEnding:
+    @staticmethod
+    def test_add_adds_ending_nodes_with_different_edge_colors_and_ids(
+            starting_graph: Graph,
+    ) -> None:
+        info = create_project('test_name')
+        add_choices_and_selection(info, ['choice1', 'choice2'], 1)
+        add_ending(info, 'ending1', 1)
+        add_choices_and_selection(info, ['choice3'], 0)
+        add_ending(info, 'ending2', 2)
+
+        expected = starting_graph
+        add_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1)
+        add_selected_node(expected, 2, '2. choice2')
+        add_edge(expected, 0, 2, 'green')
+        add_ending_node(expected, 'E0', 'E0. ending1')
+        add_edge(expected, 2, 'E0', 'green')
+        add_node(expected, 3, '3. choice3')
+        add_edge(expected, 1, 3, 'blue')
+        add_ending_node(expected, 'E1', 'E1. ending2')
+        add_edge(expected, 3, 'E1', 'blue')
         assert_graphs_equal(info, expected)

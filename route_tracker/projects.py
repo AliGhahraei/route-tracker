@@ -6,6 +6,8 @@ from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
                                  add_selected_node, deselect_node, mark_edge,
                                  select_node)
 
+ROUTE_COLORS = ['green', 'blue']
+
 
 @dataclass
 class ProjectInfo:
@@ -13,11 +15,12 @@ class ProjectInfo:
     graph: Graph
     last_choice_id: int
     last_generated_id: int
+    next_ending_id: int
 
 
 def create_project(name: str) -> ProjectInfo:
     return ProjectInfo(name, _create_graph(name), last_choice_id=0,
-                       last_generated_id=0)
+                       last_generated_id=0, next_ending_id=0)
 
 
 def _create_graph(name: str) -> Graph:
@@ -30,7 +33,7 @@ def add_choices_and_selection(info: ProjectInfo, choices: Sequence[str],
                               selected_choice_index: int) -> None:
     choices_ids = _add_choices_to_graph(choices, info)
     selected_choice_id = choices_ids[selected_choice_index]
-    _update_selections(info.graph, info.last_choice_id, selected_choice_id)
+    _update_selection(info, selected_choice_id)
     info.last_choice_id = selected_choice_id
     info.last_generated_id = choices_ids[-1]
 
@@ -47,19 +50,24 @@ def _add_choices_to_graph(choices: Sequence[str], info: ProjectInfo) \
     return choices_ids
 
 
-def _update_selections(
-        graph: Graph, last_choice: int, selected_choice: int,
+def _update_selection(
+        info: ProjectInfo, selected_choice: int,
 ) -> None:
-    deselect_node(graph, last_choice)
-    select_node(graph, selected_choice)
-    mark_edge(graph, last_choice, selected_choice)
+    deselect_node(info.graph, info.last_choice_id)
+    select_node(info.graph, selected_choice)
+    mark_edge(info.graph, info.last_choice_id, selected_choice,
+              ROUTE_COLORS[info.next_ending_id])
 
 
 def add_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
         -> None:
-    add_ending_node(info.graph, 'E1', f'E1. {ending_label}')
+    numeric_ending_id = info.next_ending_id
+    ending_id = f'E{numeric_ending_id}'
+    add_ending_node(info.graph, ending_id, f'{ending_id}. {ending_label}')
     last_selected_choice = info.last_choice_id
-    add_edge(info.graph, last_selected_choice, 'E1', 'green')
+    add_edge(info.graph, last_selected_choice, ending_id,
+             ROUTE_COLORS[numeric_ending_id])
     deselect_node(info.graph, last_selected_choice)
     select_node(info.graph, new_choice_id)
     info.last_choice_id = new_choice_id
+    info.next_ending_id = numeric_ending_id + 1
