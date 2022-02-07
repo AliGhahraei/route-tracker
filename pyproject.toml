@@ -40,7 +40,7 @@ Home = "https://github.com/AliGhahraei/route-tracker"
 
 
 [tool.mypy]
-files = ['route_tracker', 'tests', '*.py']
+files = ['src/route_tracker', 'tests', '*.py']
 strict = true
 
   [[tool.mypy.overrides]]
