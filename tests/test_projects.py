@@ -1,12 +1,28 @@
 #!/usr/bin/env python3
+from pytest import mark
+
 from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
                                  add_selected_node)
 from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
-                                    add_ending, create_project)
+                                    add_ending, create_project,
+                                    get_route_color)
 
 
 def assert_graphs_equal(info: ProjectInfo, expected_graph: Graph) -> None:
     assert info.graph.content == expected_graph.content
+
+
+class TestGetRouteColor:
+    @staticmethod
+    @mark.parametrize('ending_id,expected_color', [
+        (0, 'green'),
+        (1, 'blue'),
+        (11, 'darkgoldenrod'),
+        (12, 'green'),
+    ])
+    def test_valid_id_returns_matching_color(ending_id: int,
+                                             expected_color: str) -> None:
+        assert get_route_color
 
 
 class TestAddChoicesAndSelection:

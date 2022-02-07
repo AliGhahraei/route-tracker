@@ -6,7 +6,20 @@ from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
                                  add_selected_node, deselect_node, mark_edge,
                                  select_node, verify_id_exists)
 
-ROUTE_COLORS = ['green', 'blue']
+_ROUTE_COLORS = (
+    'green',
+    'blue',
+    'violet',
+    'red',
+    'orange',
+    'yellow',
+    'yellowgreen',
+    'aquamarine4',
+    'blueviolet',
+    'deeppink3',
+    'chocolate',
+    'darkgoldenrod',
+)
 
 
 @dataclass
@@ -55,8 +68,12 @@ def _update_selection(
     deselect_node(info.graph, info.last_choice_id)
     select_node(info.graph, selected_choice)
     mark_edge(info.graph, info.last_choice_id, selected_choice,
-              ROUTE_COLORS[info.next_ending_id])
+              get_route_color(info.next_ending_id))
     info.last_choice_id = selected_choice
+
+
+def get_route_color(ending_id: int) -> str:
+    return _ROUTE_COLORS[ending_id]
 
 
 def add_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
@@ -66,7 +83,7 @@ def add_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
     add_ending_node(info.graph, ending_id, f'{ending_id}. {ending_label}')
     last_selected_choice = info.last_choice_id
     add_edge(info.graph, last_selected_choice, ending_id,
-             ROUTE_COLORS[numeric_ending_id])
+             get_route_color(numeric_ending_id))
     deselect_node(info.graph, last_selected_choice)
     select_node(info.graph, new_choice_id)
     info.last_choice_id = new_choice_id
@@ -77,7 +94,7 @@ def advance_to_choice(info: ProjectInfo, selected_id: int) -> None:
     deselect_node(info.graph, info.last_choice_id)
     select_node(info.graph, selected_id)
     add_edge(info.graph, info.last_choice_id, selected_id,
-             ROUTE_COLORS[info.next_ending_id])
+             get_route_color(info.next_ending_id))
     info.last_choice_id = selected_id
 
 
