@@ -130,3 +130,6 @@ dmypy.json
 
 # Doit db
 .doit.db
+
+# intellij
+.idea
