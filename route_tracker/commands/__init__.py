@@ -10,8 +10,9 @@ from xdg import xdg_config_home
 from route_tracker.commands.choices import app as choices_app
 from route_tracker.io import (ProjectContext, abort, abort_on_invalid_id,
                               draw_image, get_graph, get_graph_file,
-                              get_image_path, read_project_info, store_info)
-from route_tracker.projects import add_ending, create_project
+                              get_image_path, read_project_info, store_info,
+                              store_new_project)
+from route_tracker.projects import add_ending
 
 app = Typer()
 app.add_typer(choices_app, name='choices')
@@ -26,8 +27,7 @@ def run(ctx: Context, project_name: str) -> None:
 def new(ctx: ProjectContext) -> None:
     name = ctx.obj
     _validate_project_does_not_exist(name)
-    info = create_project(name)
-    store_info(info)
+    info = store_new_project(name)
     echo(f'{name} created')
     draw_image(info.name, info.graph)
 

@@ -5,8 +5,9 @@ from typing import List
 from typer import Option, Typer, echo
 
 from route_tracker.io import (ProjectContext, abort, abort_on_invalid_id,
-                              draw_image, read_project_info, store_info)
-from route_tracker.projects import add_choices_and_selection, advance_to_choice
+                              draw_image, read_project_info,
+                              store_choices_and_selection, store_info)
+from route_tracker.projects import advance_to_choice
 
 app = Typer()
 
@@ -17,8 +18,7 @@ def add(ctx: ProjectContext) -> None:
     info = read_project_info(project_name)
     choices = _read_choices()
     selected_choice_index = _get_selected_choice_index(len(choices))
-    add_choices_and_selection(info, choices, selected_choice_index)
-    store_info(info)
+    store_choices_and_selection(info, choices, selected_choice_index)
     draw_image(info.name, info.graph)
 
 

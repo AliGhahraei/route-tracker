@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 from route_tracker.commands import app
 from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
                                  add_selected_node)
+from route_tracker.io import store_choices_and_selection, store_new_project
 
 InputRunner = Callable[[str], Result]
 
@@ -60,20 +61,6 @@ def mock_draw(request: FixtureRequest) \
             yield mock
 
 
-@fixture
-def new_runner(cli_runner: CliRunner) -> NewRunner:
-    def runner(project_name: str = 'test_name') -> Result:
-        return cli_runner.invoke(app, [project_name, 'new'])
-    return runner
-
-
-@fixture
-def add_choices_runner(cli_runner: CliRunner) -> InputRunner:
-    return lambda input_: cli_runner.invoke(
-        app, ['test_name', 'choices', 'add'], input=input_,
-    )
-
-
 def get_project_dir(data_dir: Path) -> Path:
     return data_dir / 'route-tracker' / 'test_name'
 
@@ -106,6 +93,14 @@ def assert_error_exit(result: Result, message: str) -> None:
 
 
 class TestNewCommand:
+    @staticmethod
+    @fixture
+    def new_runner(cli_runner: CliRunner) -> NewRunner:
+        def runner(project_name: str = 'test_name') -> Result:
+            return cli_runner.invoke(app, [project_name, 'new'])
+
+        return runner
+
     @staticmethod
     def test_new_exits_with_correct_message_when_called_with_name(
             new_runner: NewRunner,
@@ -147,10 +142,17 @@ class TestNewCommand:
 
 class TestAddChoicesCommand:
     @staticmethod
+    @fixture
+    def add_choices_runner(cli_runner: CliRunner) -> InputRunner:
+        return lambda input_: cli_runner.invoke(
+            app, ['test_name', 'choices', 'add'], input=input_,
+        )
+
+    @staticmethod
     def test_add_exits_with_correct_messages_when_called_with_choices(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
+            add_choices_runner: InputRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         assert_normal_exit(add_choices_runner('choice1\n\n0'),
                            'Enter available choices separated by newlines. A'
                            ' blank line ends the input\nEnter the zero-based'
@@ -158,10 +160,10 @@ class TestAddChoicesCommand:
 
     @staticmethod
     def test_add_saves_single_choice_when_called_with_single_choice(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
-            test_data_dir: Path, starting_graph: Graph,
+            add_choices_runner: InputRunner, test_data_dir: Path,
+            starting_graph: Graph,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         add_choices_runner('choice1\n\n0')
 
         expected = starting_graph
@@ -171,36 +173,36 @@ class TestAddChoicesCommand:
 
     @staticmethod
     def test_add_draws_graph(
-            new_runner: NewRunner, test_data_dir: Path, mock_draw: Mock,
+            test_data_dir: Path, mock_draw: Mock,
             add_choices_runner: InputRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         add_choices_runner('choice1\n\n0')
 
-        assert_draw_called(mock_draw, test_data_dir, expected_calls=2)
+        assert_draw_called(mock_draw, test_data_dir)
 
     @staticmethod
     def test_add_exits_with_error_when_called_with_no_choices(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
+            add_choices_runner: InputRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         assert_error_exit(add_choices_runner('\n'),
                           'At least one choice must be entered')
 
     @staticmethod
     @mark.parametrize('index', [1, 2, -2])
     def test_add_exits_with_error_when_selected_choice_is_out_of_bounds(
-            index: int, new_runner: NewRunner, add_choices_runner: InputRunner,
+            index: int, add_choices_runner: InputRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         assert_error_exit(add_choices_runner(f'choice1\n\n{index}'),
                           f'Index {index} is out of bounds')
 
     @staticmethod
     def test_add_exits_with_error_when_selected_choice_is_not_a_number(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
+            add_choices_runner: InputRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         assert_error_exit(add_choices_runner('choice1\n\nnot_a_number'),
                           'Index not_a_number is not a number')
 
@@ -229,28 +231,27 @@ class TestAdvanceChoice:
 
     @staticmethod
     def test_advance_aborts_when_called_with_non_existing_id(
-            new_runner: NewRunner, advance_choices_runner: InputRunner,
+            advance_choices_runner: InputRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         assert_error_exit(advance_choices_runner('999'),
                           "id 999 does not exist")
 
     @staticmethod
     def test_advance_aborts_when_called_with_currently_selected_id(
-            new_runner: NewRunner, advance_choices_runner: InputRunner,
+            advance_choices_runner: InputRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         assert_error_exit(advance_choices_runner('0'),
                           "Cannot advance currently selected node to itself")
 
     @staticmethod
     def test_advance_advances_to_id(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
             test_data_dir: Path, starting_graph: Graph,
             advance_choices_runner: InputRunner,
     ) -> None:
-        new_runner()
-        add_choices_runner('choice1\nchoice2\n\n0')
+        info = store_new_project('test_name')
+        store_choices_and_selection(info, ['choice1', 'choice2'], 0)
         advance_choices_runner('2')
 
         expected = starting_graph
@@ -263,15 +264,14 @@ class TestAdvanceChoice:
 
     @staticmethod
     def test_advance_draws_image(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
             test_data_dir: Path, mock_draw: Mock,
             advance_choices_runner: InputRunner,
     ) -> None:
-        new_runner()
-        add_choices_runner('choice1\nchoice2\n\n0')
+        info = store_new_project('test_name')
+        store_choices_and_selection(info, ['choice1', 'choice2'], 0)
         advance_choices_runner('2')
 
-        assert_draw_called(mock_draw, test_data_dir, expected_calls=3)
+        assert_draw_called(mock_draw, test_data_dir)
 
 
 class TestEndingCommand:
@@ -290,43 +290,40 @@ class TestEndingCommand:
 
     @staticmethod
     def test_ending_aborts_when_called_before_any_choice_is_added(
-            new_runner: NewRunner, ending_runner: InputRunner,
+            ending_runner: InputRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         assert_error_exit(ending_runner('ending\n0'),
                           "You cannot add an ending directly to the start"
                           " node")
 
     @staticmethod
     def test_ending_aborts_when_called_with_non_existing_id(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
             ending_runner: InputRunner, starting_graph: Graph,
             test_data_dir: Path,
     ) -> None:
-        new_runner()
-        add_choices_runner('choice1\n\n0')
+        info = store_new_project('test_name')
+        store_choices_and_selection(info, ['choice1'], 0)
         assert_error_exit(ending_runner('ending\n999\n'),
                           "id 999 does not exist")
 
     @staticmethod
     def test_ending_exits_with_correct_messages_when_called_with_ending(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
             ending_runner: InputRunner,
     ) -> None:
-        new_runner()
-        add_choices_runner('choice1\nchoice2\n\n0')
+        info = store_new_project('test_name')
+        store_choices_and_selection(info, ['choice1', 'choice2'], 0)
         assert_normal_exit(ending_runner('ending\n1\n'),
                            "Ending label: ending\nEnter the id of an existing"
                            ' choice to be selected as the current choice: 1\n')
 
     @staticmethod
     def test_ending_adds_ending_node_and_changes_selected_node(
-            new_runner: NewRunner, add_choices_runner: InputRunner,
             ending_runner: InputRunner, starting_graph: Graph,
             test_data_dir: Path,
     ) -> None:
-        new_runner()
-        add_choices_runner('choice1\nchoice2\n\n1')
+        info = store_new_project('test_name')
+        store_choices_and_selection(info, ['choice1', 'choice2'], 1)
         ending_runner('ending_label\n1\n')
 
         expected = starting_graph
@@ -340,14 +337,13 @@ class TestEndingCommand:
 
     @staticmethod
     def test_ending_draws_graph(
-            new_runner: NewRunner, test_data_dir: Path, mock_draw: Mock,
-            add_choices_runner: InputRunner, ending_runner: InputRunner,
+            test_data_dir: Path, mock_draw: Mock, ending_runner: InputRunner,
     ) -> None:
-        new_runner()
-        add_choices_runner('choice1\n\n0')
+        info = store_new_project('test_name')
+        store_choices_and_selection(info, ['choice1'], 0)
         ending_runner('ending_label\n1\n')
 
-        assert_draw_called(mock_draw, test_data_dir, expected_calls=3)
+        assert_draw_called(mock_draw, test_data_dir)
 
 
 class TestViewCommand:
@@ -361,27 +357,26 @@ class TestViewCommand:
 
     @staticmethod
     def test_view_prompts_for_viewer_if_not_configured(
-            new_runner: NewRunner, view_runner: ViewRunner,
+            view_runner: ViewRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         assert_normal_exit(view_runner(input_='test_viewer\n'),
                            'Image viewer command:')
 
     @staticmethod
     def test_view_does_not_prompt_for_viewer_if_configured(
-            new_runner: NewRunner, view_runner: ViewRunner,
+            view_runner: ViewRunner,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         view_runner(input_='test_viewer\n')
         assert_normal_exit(view_runner(), '')
 
     @staticmethod
     @mark.skip_mock_draw_autouse
     def test_view_shows_existing_graph(
-            new_runner: NewRunner, view_runner: ViewRunner,
-            test_data_dir: Path, mock_spawn: Mock,
+            view_runner: ViewRunner, test_data_dir: Path, mock_spawn: Mock,
     ) -> None:
-        new_runner()
+        store_new_project('test_name')
         view_runner(input_='test_viewer\n')
 
         assert get_image_dir(test_data_dir).exists()

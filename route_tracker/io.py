@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator, Mapping, NoReturn, Tuple, cast
+from typing import Generator, Mapping, NoReturn, Sequence, Tuple, cast
 
 from tomlkit import dumps, parse
 from typer import Context, Exit, echo
 from xdg import xdg_data_home
 
 from route_tracker.graph import Graph, InvalidNodeId, draw, store
-from route_tracker.projects import ProjectInfo
+from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
+                                    create_project)
 
 
 class ProjectContext(Context):
@@ -77,3 +78,15 @@ def _store_ids(info: ProjectInfo) -> None:
         doc['last_id'] = info.last_generated_id
         doc['next_ending_id'] = info.next_ending_id
         f.write(dumps(doc))
+
+
+def store_new_project(name: str) -> ProjectInfo:
+    info = create_project(name)
+    store_info(info)
+    return info
+
+
+def store_choices_and_selection(info: ProjectInfo, choices: Sequence[str],
+                                selected_choice_index: int) -> None:
+    add_choices_and_selection(info, choices, selected_choice_index)
+    store_info(info)
