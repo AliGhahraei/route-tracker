@@ -5,7 +5,8 @@ from pytest import fixture, mark
 from typer.testing import CliRunner
 
 from route_tracker.commands import app
-from route_tracker.graph import Graph, add_edge, add_node, add_selected_node
+from route_tracker.graph import (Graph, add_edge, add_node, add_selected_node,
+                                 comment_node, select_node)
 from route_tracker.io import store_choices_and_selection, store_new_project
 from tests.commands.helpers import (InputRunner, assert_draw_called,
                                     assert_error_exit, assert_normal_exit,
@@ -202,5 +203,52 @@ class TestLinkChoices:
         info = store_new_project('test_name')
         store_choices_and_selection(info, ['choice1', 'choice2'], 0)
         link_choices_runner('2')
+
+        assert_draw_called(mock_draw, test_data_dir)
+
+
+class TestCommentChoice:
+    @staticmethod
+    @fixture
+    def comment_choice_runner(cli_runner: CliRunner) -> InputRunner:
+        return lambda input_: cli_runner.invoke(
+            app, ['test_name', 'choices', 'comment'], input=input_,
+        )
+
+    @staticmethod
+    def test_comment_aborts_if_project_does_not_exist(
+            comment_choice_runner: InputRunner,
+    ) -> None:
+        assert_error_exit(comment_choice_runner('0\ncomment'),
+                          'Project test_name does not exist')
+
+    @staticmethod
+    def test_comment_aborts_when_called_with_non_existing_id(
+            comment_choice_runner: InputRunner,
+    ) -> None:
+        store_new_project('test_name')
+        assert_error_exit(comment_choice_runner('999\ncomment'),
+                          "id 999 does not exist")
+
+    @staticmethod
+    def test_comment_adds_comment(
+            test_data_dir: Path, starting_graph: Graph,
+            comment_choice_runner: InputRunner,
+    ) -> None:
+        store_new_project('test_name')
+        comment_choice_runner('0\ncomment')
+
+        expected = starting_graph
+        select_node(expected, 0)
+        comment_node(expected, 0, '0: comment')
+        assert_stored_graph_equals(test_data_dir, expected)
+
+    @staticmethod
+    def test_comment_draws_image(
+            test_data_dir: Path, mock_draw: Mock,
+            comment_choice_runner: InputRunner,
+    ) -> None:
+        store_new_project('test_name')
+        comment_choice_runner('0\ncomment')
 
         assert_draw_called(mock_draw, test_data_dir)

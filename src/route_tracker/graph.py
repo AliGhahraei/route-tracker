@@ -11,7 +11,8 @@ class Graph:
     def __init__(self, name_or_path: Union[str, Path]):
         self._graph = (pgv.AGraph(name_or_path)
                        if isinstance(name_or_path, Path)
-                       else pgv.AGraph(name=name_or_path, directed=True))
+                       else pgv.AGraph(name=name_or_path, directed=True,
+                                       forcelabels='true'))
 
     @property
     def content(self) -> str:
@@ -68,6 +69,10 @@ def select_node(graph: Graph, node_id: int) -> None:
 def mark_edge(graph: Graph, starting_id: int, ending_id: int, color: str) \
         -> None:
     graph._graph.get_edge(starting_id, ending_id).attr['color'] = color
+
+
+def comment_node(graph: Graph, node_id: int, comment: str) -> None:
+    _get_node(graph, node_id).attr['xlabel'] = comment
 
 
 def store(graph: Graph, path: Path) -> None:

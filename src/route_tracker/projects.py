@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
-                                 add_selected_node, deselect_node, mark_edge,
-                                 select_node, verify_id_exists)
+                                 add_selected_node, comment_node,
+                                 deselect_node, mark_edge, select_node,
+                                 verify_id_exists)
 
 _ROUTE_COLORS = (
     'green',
@@ -114,3 +115,7 @@ def advance_to_choice(info: ProjectInfo, selected_id: int) -> None:
 def link_to_choice(info: ProjectInfo, selected_id: int) -> None:
     verify_id_exists(info.graph, selected_id)
     add_edge(info.graph, info.last_choice_id, selected_id)
+
+
+def comment_choice(info: ProjectInfo, node_id: int, comment: str) -> None:
+    comment_node(info.graph, node_id, f'{node_id}: {comment}')

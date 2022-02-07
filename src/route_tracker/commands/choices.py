@@ -9,7 +9,7 @@ from route_tracker.io import (ProjectContext, abort, abort_on_invalid_id,
                               draw_image, read_project_info,
                               store_choices_and_selection, store_info)
 from route_tracker.projects import (ProjectInfo, advance_to_choice,
-                                    link_to_choice)
+                                    comment_choice, link_to_choice)
 
 app = Typer()
 
@@ -74,5 +74,16 @@ def link(ctx: ProjectContext, existing_id: int = Option(..., prompt=True)) \
     info = read_project_info(project_name)
     with _abort_on_invalid_or_current_id('link', existing_id, info):
         link_to_choice(info, existing_id)
+    store_info(info)
+    draw_image(info.name, info.graph)
+
+
+@app.command()
+def comment(ctx: ProjectContext, existing_id: int = Option(..., prompt=True),
+            comment_text: str = Option(..., prompt=True)) -> None:
+    project_name = ctx.obj
+    info = read_project_info(project_name)
+    with abort_on_invalid_id():
+        comment_choice(info, existing_id, comment_text)
     store_info(info)
     draw_image(info.name, info.graph)
