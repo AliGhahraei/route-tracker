@@ -9,7 +9,7 @@ from xdg import xdg_data_home
 
 from route_tracker.graph import Graph, InvalidNodeId, draw, store
 from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
-                                    create_project)
+                                    add_ending, create_project)
 
 
 class ProjectContext(Context):
@@ -59,11 +59,11 @@ def read_project_info(name: str) -> ProjectInfo:
     return ProjectInfo(name, get_graph(name), *_get_ids(name))
 
 
-def _get_ids(name: str) -> Tuple[int, int, int]:
+def _get_ids(name: str) -> Tuple[int, int, int, int]:
     with open(get_project_dir(name) / 'data') as f:
         config = cast(Mapping[str, int], parse(f.read()))
         return (config['last_selected_choice'], config['last_id'],
-                config['next_ending_id'])
+                config['next_ending_id'], config['route_id'])
 
 
 def store_info(info: ProjectInfo) -> None:
@@ -76,7 +76,8 @@ def _store_ids(info: ProjectInfo) -> None:
         doc = parse(f.read())
         doc['last_selected_choice'] = info.last_choice_id
         doc['last_id'] = info.last_generated_id
-        doc['next_ending_id'] = info.next_ending_id
+        doc['next_ending_id'] = info.next_numeric_ending_id
+        doc['route_id'] = info.route_id
         f.write(dumps(doc))
 
 
@@ -89,4 +90,11 @@ def store_new_project(name: str) -> ProjectInfo:
 def store_choices_and_selection(info: ProjectInfo, choices: Sequence[str],
                                 selected_choice_index: int) -> None:
     add_choices_and_selection(info, choices, selected_choice_index)
+    store_info(info)
+
+
+def store_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
+        -> None:
+    with abort_on_invalid_id():
+        add_ending(info, ending_label, new_choice_id)
     store_info(info)

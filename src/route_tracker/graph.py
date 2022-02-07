@@ -42,11 +42,11 @@ def deselect_node(graph: Graph, node_id: int) -> None:
     del node.attr['color']
 
 
-def verify_id_exists(graph: Graph, node_id: int) -> None:
+def verify_id_exists(graph: Graph, node_id: Union[int, str]) -> None:
     _get_node(graph, node_id)
 
 
-def _get_node(graph: Graph, node_id: int) -> pgv.Node:
+def _get_node(graph: Graph, node_id: Union[int, str]) -> pgv.Node:
     try:
         node = graph._graph.get_node(node_id)
     except KeyError:
@@ -55,7 +55,7 @@ def _get_node(graph: Graph, node_id: int) -> pgv.Node:
 
 
 class InvalidNodeId(Exception):
-    def __init__(self, node_id: int):
+    def __init__(self, node_id: Union[int, str]):
         self.node_id = node_id
         super().__init__(node_id)
 

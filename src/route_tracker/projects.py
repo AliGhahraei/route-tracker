@@ -28,12 +28,14 @@ class ProjectInfo:
     graph: Graph
     last_choice_id: int
     last_generated_id: int
-    next_ending_id: int
+    next_numeric_ending_id: int
+    route_id: int
 
 
 def create_project(name: str) -> ProjectInfo:
     return ProjectInfo(name, _create_graph(name), last_choice_id=0,
-                       last_generated_id=0, next_ending_id=0)
+                       last_generated_id=0, next_numeric_ending_id=0,
+                       route_id=0)
 
 
 def _create_graph(name: str) -> Graph:
@@ -68,33 +70,44 @@ def _update_selection(
     deselect_node(info.graph, info.last_choice_id)
     select_node(info.graph, selected_choice)
     mark_edge(info.graph, info.last_choice_id, selected_choice,
-              get_route_color(info.next_ending_id))
+              get_route_color(info))
     info.last_choice_id = selected_choice
 
 
-def get_route_color(ending_id: int) -> str:
-    return _ROUTE_COLORS[ending_id]
+def get_route_color(info: ProjectInfo) -> str:
+    return _ROUTE_COLORS[info.route_id]
 
 
 def add_ending(info: ProjectInfo, ending_label: str, new_choice_id: int) \
         -> None:
-    numeric_ending_id = info.next_ending_id
-    ending_id = f'E{numeric_ending_id}'
+    ending_id = f'E{info.next_numeric_ending_id}'
     add_ending_node(info.graph, ending_id, f'{ending_id}. {ending_label}')
+    _finish_route(info, ending_id, new_choice_id)
+    info.next_numeric_ending_id += 1
+
+
+def link_to_ending(info: ProjectInfo, ending_id: str, new_choice_id: int) \
+        -> None:
+    verify_id_exists(info.graph, ending_id)
+    _finish_route(info, ending_id, new_choice_id)
+
+
+def _finish_route(info: ProjectInfo, ending_id: str, new_choice_id: int) \
+        -> None:
     last_selected_choice = info.last_choice_id
-    add_edge(info.graph, last_selected_choice, ending_id,
-             get_route_color(numeric_ending_id))
     deselect_node(info.graph, last_selected_choice)
     select_node(info.graph, new_choice_id)
+    add_edge(info.graph, last_selected_choice, ending_id,
+             get_route_color(info))
     info.last_choice_id = new_choice_id
-    info.next_ending_id = numeric_ending_id + 1
+    info.route_id += 1
 
 
 def advance_to_choice(info: ProjectInfo, selected_id: int) -> None:
     deselect_node(info.graph, info.last_choice_id)
     select_node(info.graph, selected_id)
     add_edge(info.graph, info.last_choice_id, selected_id,
-             get_route_color(info.next_ending_id))
+             get_route_color(info))
     info.last_choice_id = selected_id
 
 
