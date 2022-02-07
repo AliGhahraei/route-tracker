@@ -11,6 +11,11 @@ from route_tracker.graph import Graph, InvalidNodeId, draw, store
 from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
                                     add_ending, create_project)
 
+LAST_CHOICE_ID = 'last_choice_id'
+LAST_GENERATED_ID = 'last_generated_id'
+NEXT_NUMERIC_ENDING_ID = 'next_numeric_ending_id'
+ROUTE_ID = 'route_id'
+
 
 class ProjectContext(Context):
     obj: str
@@ -62,8 +67,8 @@ def read_project_info(name: str) -> ProjectInfo:
 def _get_ids(name: str) -> Tuple[int, int, int, int]:
     with open(get_project_dir(name) / 'data') as f:
         config = cast(Mapping[str, int], parse(f.read()))
-        return (config['last_selected_choice'], config['last_id'],
-                config['next_ending_id'], config['route_id'])
+        return (config[LAST_CHOICE_ID], config[LAST_GENERATED_ID],
+                config[NEXT_NUMERIC_ENDING_ID], config[ROUTE_ID])
 
 
 def store_info(info: ProjectInfo) -> None:
@@ -74,10 +79,10 @@ def store_info(info: ProjectInfo) -> None:
 def _store_ids(info: ProjectInfo) -> None:
     with open(get_project_dir(info.name) / 'data', 'w+') as f:
         doc = parse(f.read())
-        doc['last_selected_choice'] = info.last_choice_id
-        doc['last_id'] = info.last_generated_id
-        doc['next_ending_id'] = info.next_numeric_ending_id
-        doc['route_id'] = info.route_id
+        doc[LAST_CHOICE_ID] = info.last_choice_id
+        doc[LAST_GENERATED_ID] = info.last_generated_id
+        doc[NEXT_NUMERIC_ENDING_ID] = info.next_numeric_ending_id
+        doc[ROUTE_ID] = info.route_id
         f.write(dumps(doc))
 
 
