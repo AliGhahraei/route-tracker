@@ -20,11 +20,23 @@ app.add_typer(ending_app, name='ending')
 
 @app.callback()
 def run(ctx: Context, project_name: str) -> None:
+    """Keep track of your choices
+
+    Route-tracker helps you keep track of your choices when playing a
+    text-based game, when reading a visual novel or any time you want to track
+    some kind of decision-making process. Each individual "thing" tracked by it
+    is called a project. It can show a visualization of the choices you have
+    selected. The current choice is shown with a double circle around it.
+    """
     ctx.obj = project_name
 
 
 @app.command()
 def new(ctx: ProjectContext) -> None:
+    """Creates a new project
+
+    Each program or "thing" you want to track should have its own project.
+    """
     name = ctx.obj
     _validate_project_does_not_exist(name)
     info = store_new_project(name)
@@ -39,6 +51,11 @@ def _validate_project_does_not_exist(name: str) -> None:
 
 @app.command()
 def view(ctx: ProjectContext) -> None:
+    """Visualize your project
+
+    View asks you for an image viewer command if you have not configured one
+    before (it must handle PNGs) and displays your project as a graph
+    """
     project_name = ctx.obj
     draw_image(project_name, get_graph(project_name))
     Popen([_get_viewer(), get_image_path(project_name)])
