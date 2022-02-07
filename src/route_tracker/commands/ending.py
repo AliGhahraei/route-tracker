@@ -4,8 +4,7 @@ from route_tracker.io import (ProjectContext, abort_on_invalid_id, draw_image,
                               read_project_info, store_ending, store_info)
 from route_tracker.projects import link_to_ending
 
-CHOICE_PROMPT = ('Enter the id of an existing choice to be selected as the'
-                 ' current choice')
+CHOICE_HELP = 'ID of an existing choice to start the route with'
 
 app = Typer()
 
@@ -26,7 +25,7 @@ def run() -> None:
 def add(
         ctx: ProjectContext,
         ending_label: str = Option(..., prompt=True),
-        new_choice_id: int = Option(..., prompt=CHOICE_PROMPT),
+        new_choice_id: int = Option(..., help=CHOICE_HELP, prompt=True),
 ) -> None:
     """Add an ending
 
@@ -42,9 +41,9 @@ def add(
 @app.command()
 def link(
         ctx: ProjectContext,
-        ending_id: str = Option(..., prompt='Enter an ending id including the'
-                                            ' "E"'),
-        new_choice_id: int = Option(..., prompt=CHOICE_PROMPT),
+        ending_id: str = Option(..., help='Ending ID including the "E"',
+                                prompt=True),
+        new_choice_id: int = Option(..., help=CHOICE_HELP, prompt=True),
 ) -> None:
     """Link to an existing ending
 

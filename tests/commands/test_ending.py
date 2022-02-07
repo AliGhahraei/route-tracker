@@ -46,8 +46,7 @@ class TestAddEndingCommand:
         info = store_new_project('test_name')
         store_choices_and_selection(info, ['choice1', 'choice2'], 0)
         assert_normal_exit(add_ending_runner('ending\n1\n'),
-                           "Ending label: ending\nEnter the id of an existing"
-                           ' choice to be selected as the current choice: 1\n')
+                           'Ending label: ending\nNew choice id: 1\n')
 
     @staticmethod
     def test_add_adds_ending_node_and_changes_selected_node(
@@ -121,9 +120,7 @@ class TestLinkEndingCommand:
         store_choices_and_selection(info, ['choice1', 'choice2'], 0)
         store_ending(info, 'ending', 2)
         assert_normal_exit(link_ending_runner('E0\n0'),
-                           'Enter an ending id including the "E": E0\nEnter'
-                           ' the id of an existing choice to be selected as'
-                           ' the current choice: 0\n')
+                           'Ending id: E0\nNew choice id: 0\n')
 
     @staticmethod
     def test_link_adds_ending_node_and_changes_selected_node(
