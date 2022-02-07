@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 import sys
-from typing import List
+from contextlib import contextmanager
+from typing import Generator, List
 
 from typer import Option, Typer, echo
 
 from route_tracker.io import (ProjectContext, abort, abort_on_invalid_id,
                               draw_image, read_project_info,
                               store_choices_and_selection, store_info)
-from route_tracker.projects import advance_to_choice
+from route_tracker.projects import (ProjectInfo, advance_to_choice,
+                                    link_to_choice)
 
 app = Typer()
 
@@ -49,9 +51,28 @@ def advance(ctx: ProjectContext, existing_id: int = Option(..., prompt=True)) \
         -> None:
     project_name = ctx.obj
     info = read_project_info(project_name)
-    if existing_id == info.last_choice_id:
-        abort('Cannot advance currently selected node to itself')
-    with abort_on_invalid_id():
+    with _abort_on_invalid_or_current_id('advance', existing_id, info):
         advance_to_choice(info, existing_id)
+    store_info(info)
+    draw_image(info.name, info.graph)
+
+
+@contextmanager
+def _abort_on_invalid_or_current_id(routine_name: str, node_id: int,
+                                    info: ProjectInfo) \
+        -> Generator[None, None, None]:
+    if node_id == info.last_choice_id:
+        abort(f'Cannot {routine_name} currently selected node to itself')
+    with abort_on_invalid_id():
+        yield
+
+
+@app.command()
+def link(ctx: ProjectContext, existing_id: int = Option(..., prompt=True)) \
+        -> None:
+    project_name = ctx.obj
+    info = read_project_info(project_name)
+    with _abort_on_invalid_or_current_id('link', existing_id, info):
+        link_to_choice(info, existing_id)
     store_info(info)
     draw_image(info.name, info.graph)

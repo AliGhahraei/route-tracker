@@ -42,18 +42,27 @@ def deselect_node(graph: Graph, node_id: int) -> None:
     del node.attr['color']
 
 
-def select_node(graph: Graph, node_id: int) -> None:
+def verify_id_exists(graph: Graph, node_id: int) -> None:
+    _get_node(graph, node_id)
+
+
+def _get_node(graph: Graph, node_id: int) -> pgv.Node:
     try:
         node = graph._graph.get_node(node_id)
     except KeyError:
         raise InvalidNodeId(node_id)
-    node.attr.update(SELECTED_NODE_ATTRS)
+    return node
 
 
 class InvalidNodeId(Exception):
     def __init__(self, node_id: int):
         self.node_id = node_id
         super().__init__(node_id)
+
+
+def select_node(graph: Graph, node_id: int) -> None:
+    node = _get_node(graph, node_id)
+    node.attr.update(SELECTED_NODE_ATTRS)
 
 
 def mark_edge(graph: Graph, starting_id: int, ending_id: int, color: str) \

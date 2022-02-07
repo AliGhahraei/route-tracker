@@ -144,3 +144,63 @@ class TestAdvanceChoice:
         advance_choices_runner('2')
 
         assert_draw_called(mock_draw, test_data_dir)
+
+
+class TestLinkChoices:
+    @staticmethod
+    @fixture
+    def link_choices_runner(cli_runner: CliRunner) -> InputRunner:
+        return lambda input_: cli_runner.invoke(
+            app, ['test_name', 'choices', 'link'], input=input_,
+        )
+
+    @staticmethod
+    def test_link_aborts_if_project_does_not_exist(
+            link_choices_runner: InputRunner,
+    ) -> None:
+        assert_error_exit(link_choices_runner('0'),
+                          'Project test_name does not exist')
+
+    @staticmethod
+    def test_link_aborts_when_called_with_non_existing_id(
+            link_choices_runner: InputRunner,
+    ) -> None:
+        store_new_project('test_name')
+        assert_error_exit(link_choices_runner('999'),
+                          "id 999 does not exist")
+
+    @staticmethod
+    def test_link_aborts_when_called_with_currently_selected_id(
+            link_choices_runner: InputRunner,
+    ) -> None:
+        store_new_project('test_name')
+        assert_error_exit(link_choices_runner('0'),
+                          "Cannot link currently selected node to itself")
+
+    @staticmethod
+    def test_link_links_to_id(
+            test_data_dir: Path, starting_graph: Graph,
+            link_choices_runner: InputRunner,
+    ) -> None:
+        info = store_new_project('test_name')
+        store_choices_and_selection(info, ['choice1', 'choice2'], 0)
+        link_choices_runner('2')
+
+        expected = starting_graph
+        add_selected_node(expected, 1, '1. choice1')
+        add_edge(expected, 0, 1, 'green')
+        add_node(expected, 2, '2. choice2')
+        add_edge(expected, 0, 2)
+        add_edge(expected, 1, 2)
+        assert_stored_graph_equals(test_data_dir, expected)
+
+    @staticmethod
+    def test_link_draws_image(
+            test_data_dir: Path, mock_draw: Mock,
+            link_choices_runner: InputRunner,
+    ) -> None:
+        info = store_new_project('test_name')
+        store_choices_and_selection(info, ['choice1', 'choice2'], 0)
+        link_choices_runner('2')
+
+        assert_draw_called(mock_draw, test_data_dir)

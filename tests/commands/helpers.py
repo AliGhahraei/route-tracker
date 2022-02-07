@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Callable
-from unittest.mock import ANY, Mock, call
+from unittest.mock import ANY, Mock
 
 from click.testing import Result
 
@@ -14,12 +14,8 @@ def assert_stored_graph_equals(data_dir: Path, expected_graph: Graph) -> None:
     assert graph.content == expected_graph.content
 
 
-def assert_draw_called(mock_draw: Mock, data_dir: Path, *,
-                       expected_calls: int = 1) -> None:
-    assert expected_calls == len(mock_draw.mock_calls)
-    mock_draw.assert_has_calls(
-        [call(ANY, get_image_dir(data_dir))] * expected_calls,
-    )
+def assert_draw_called(mock_draw: Mock, data_dir: Path) -> None:
+    mock_draw.assert_called_once_with(ANY, get_image_dir(data_dir))
 
 
 def assert_normal_exit(result: Result, message: str) -> None:
