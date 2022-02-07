@@ -30,15 +30,6 @@ class TestAddEndingCommand:
                           'Project test_name does not exist')
 
     @staticmethod
-    def test_add_aborts_when_called_before_any_choice_is_added(
-            add_ending_runner: InputRunner,
-    ) -> None:
-        store_new_project('test_name')
-        assert_error_exit(add_ending_runner('ending\n0'),
-                          "You cannot add an ending directly to the start"
-                          " node")
-
-    @staticmethod
     def test_add_aborts_when_called_with_non_existing_id(
             add_ending_runner: InputRunner, starting_graph: Graph,
             test_data_dir: Path,

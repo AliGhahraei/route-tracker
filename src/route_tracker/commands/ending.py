@@ -1,8 +1,7 @@
 from typer import Option, Typer
 
-from route_tracker.io import (ProjectContext, abort, abort_on_invalid_id,
-                              draw_image, read_project_info, store_ending,
-                              store_info)
+from route_tracker.io import (ProjectContext, abort_on_invalid_id, draw_image,
+                              read_project_info, store_ending, store_info)
 from route_tracker.projects import link_to_ending
 
 CHOICE_PROMPT = ('Enter the id of an existing choice to be selected as the'
@@ -19,8 +18,6 @@ def add(
 ) -> None:
     project_name = ctx.obj
     info = read_project_info(project_name)
-    if info.last_choice_id == 0:
-        abort('You cannot add an ending directly to the start node')
     store_ending(info, ending_label, new_choice_id)
     draw_image(info.name, info.graph)
 
