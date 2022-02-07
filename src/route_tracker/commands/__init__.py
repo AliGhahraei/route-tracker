@@ -4,18 +4,18 @@ from subprocess import Popen
 from typing import MutableMapping
 
 from tomlkit import document, dumps, parse
-from typer import Context, Option, Typer, echo
+from typer import Context, Typer, echo
 from xdg import xdg_config_home
 
 from route_tracker.commands.choices import app as choices_app
-from route_tracker.io import (ProjectContext, abort, abort_on_invalid_id,
-                              draw_image, get_graph, get_graph_file,
-                              get_image_path, read_project_info, store_info,
+from route_tracker.commands.ending import app as ending_app
+from route_tracker.io import (ProjectContext, abort, draw_image, get_graph,
+                              get_graph_file, get_image_path,
                               store_new_project)
-from route_tracker.projects import add_ending
 
 app = Typer()
 app.add_typer(choices_app, name='choices')
+app.add_typer(ending_app, name='ending')
 
 
 @app.callback()
@@ -35,24 +35,6 @@ def new(ctx: ProjectContext) -> None:
 def _validate_project_does_not_exist(name: str) -> None:
     if get_graph_file(name).exists():
         abort(f'{name} already exists. Ignoring...')
-
-
-@app.command()
-def ending(
-        ctx: ProjectContext,
-        ending_label: str = Option(..., prompt=True),
-        new_choice_id: int = Option(..., prompt='Enter the id of an existing'
-                                    ' choice to be selected as the current'
-                                    ' choice'),
-) -> None:
-    project_name = ctx.obj
-    info = read_project_info(project_name)
-    if info.last_choice_id == 0:
-        abort('You cannot add an ending directly to the start node')
-    with abort_on_invalid_id():
-        add_ending(info, ending_label, new_choice_id)
-    store_info(info)
-    draw_image(info.name, info.graph)
 
 
 @app.command()
