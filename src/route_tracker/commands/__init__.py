@@ -38,8 +38,11 @@ def new(ctx: ProjectContext, save_file: Optional[Path] = Option(None),
 
     Each program or "thing" you want to track should have its own project.
     If save_file and target_directory are passed, a backup of save_file will
-    be stored in target_directory when you call choices advance or choices add
-    with the file name <selected_node_id>.<route_id>.
+    be stored in target_directory when you call choices advance or choices add.
+    The file will be named <previously_selected_node_id>.<route_id>. This way
+    you would backup a save "0_0" when you add your first choices and you would
+    be able to return to that moment of your first decision to explore another
+    path.
     """
     name = get_name(ctx)
     _validate_project_does_not_exist(name)
