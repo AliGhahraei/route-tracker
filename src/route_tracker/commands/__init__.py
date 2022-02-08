@@ -42,7 +42,7 @@ def new(ctx: ProjectContext, save_file: Optional[Path] = Option(None),
     The file will be named <previously_selected_node_id>.<route_id>. This way
     you would backup a save "0_0" when you add your first choices and you would
     be able to return to that moment of your first decision to explore another
-    path.
+    path. You should save just before you select a choice.
     """
     name = get_name(ctx)
     _validate_project_does_not_exist(name)
