@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from typing import Protocol
+from typing import Optional, Protocol
 from unittest.mock import Mock
 
 from click.testing import Result
@@ -9,14 +9,15 @@ from typer.testing import CliRunner
 
 from route_tracker.commands import app
 from route_tracker.graph import Graph, add_selected_node
-from route_tracker.io import store_new_project
+from route_tracker.io import read_project_info, store_new_project
 from tests.commands.helpers import (assert_draw_called, assert_error_exit,
                                     assert_normal_exit,
                                     assert_stored_graph_equals, get_image_dir)
 
 
 class NewRunner(Protocol):
-    def __call__(self, project_name: str = ...) -> Result:
+    def __call__(self, project_name: str = ..., save_file: Optional[str] = ...,
+                 target_directory: Optional[str] = ...) -> Result:
         pass
 
 
@@ -29,8 +30,15 @@ class TestNewCommand:
     @staticmethod
     @fixture
     def new_runner(cli_runner: CliRunner) -> NewRunner:
-        def runner(project_name: str = 'test_name') -> Result:
-            return cli_runner.invoke(app, [project_name, 'new'])
+        def runner(project_name: str = 'test_name',
+                   save_file: Optional[str] = None,
+                   target_directory: Optional[str] = None) -> Result:
+            args = []
+            if save_file:
+                args.extend(['--save-file', save_file])
+            if target_directory:
+                args.extend(['--target-directory', target_directory])
+            return cli_runner.invoke(app, [project_name, 'new', *args])
 
         return runner
 
@@ -59,6 +67,14 @@ class TestNewCommand:
                           'test_name already exists. Ignoring...')
 
     @staticmethod
+    def test_new_exits_with_error_when_called_with_only_save_file(
+            new_runner: NewRunner,
+    ) -> None:
+        assert_error_exit(new_runner(save_file='save'),
+                          'save_file and test_directory must be passed'
+                          ' together')
+
+    @staticmethod
     def test_new_exits_with_correct_messages_when_called_with_different_names(
             new_runner: NewRunner,
     ) -> None:
@@ -71,6 +87,24 @@ class TestNewCommand:
     ) -> None:
         new_runner()
         assert_draw_called(mock_draw, test_data_dir)
+
+    @staticmethod
+    def test_new_stores_save_file_options_when_passed(
+            new_runner: NewRunner,
+    ) -> None:
+        new_runner(save_file='save', target_directory='dir')
+        info = read_project_info('test_name')
+        assert info.file == Path('save')
+        assert info.target_directory == Path('dir')
+
+    @staticmethod
+    def test_new_does_not_store_save_file_options_when_not_passed(
+            new_runner: NewRunner, test_data_dir: Path, mock_draw: Mock,
+    ) -> None:
+        new_runner()
+        info = read_project_info('test_name')
+        assert not info.file
+        assert not info.target_directory
 
 
 class TestViewCommand:

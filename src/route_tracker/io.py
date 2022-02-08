@@ -1,24 +1,60 @@
 #!/usr/bin/env python3
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator, Mapping, NoReturn, Sequence, Tuple, cast
+from shutil import copy2
+from typing import (Any, Callable, Dict, Generator, MutableMapping, NoReturn,
+                    Optional, Sequence, cast)
 
 from tomlkit import dumps, parse
 from typer import Context, Exit, echo
 from xdg import xdg_data_home
 
 from route_tracker.graph import Graph, InvalidNodeId, draw, store
-from route_tracker.projects import (ProjectInfo, add_choices_and_selection,
-                                    add_ending, create_project)
+from route_tracker.projects import (ProjectInfo, SaveFileInfo,
+                                    add_choices_and_selection, add_ending,
+                                    create_project)
 
-LAST_CHOICE_ID = 'last_choice_id'
-LAST_GENERATED_ID = 'last_generated_id'
-NEXT_NUMERIC_ENDING_ID = 'next_numeric_ending_id'
-ROUTE_ID = 'route_id'
+_LAST_CHOICE_ID = 'last_choice_id'
+_LAST_GENERATED_ID = 'last_generated_id'
+_NEXT_NUMERIC_ENDING_ID = 'next_numeric_ending_id'
+_ROUTE_ID = 'route_id'
+TARGET_DIRECTORY = 'target_directory'
+FILE = 'file'
+_IDS = (
+    _LAST_CHOICE_ID,
+    _LAST_GENERATED_ID,
+    _NEXT_NUMERIC_ENDING_ID,
+    _ROUTE_ID,
+)
+CopySaveFile = Callable[[SaveFileInfo], None]
 
 
 class ProjectContext(Context):
-    obj: str
+    obj: 'ContextObject'
+
+
+def copy_save_file(info: SaveFileInfo) -> None:
+    if info.file and info.target_directory:
+        info.target_directory.mkdir(parents=True, exist_ok=True)
+        copy2(
+            info.file,
+            info.target_directory / f'{info.last_choice_id}_{info.route_id}',
+        )
+
+
+@dataclass
+class ContextObject:
+    name: str
+    copy_save_file: CopySaveFile = copy_save_file
+
+
+def get_name(ctx: ProjectContext) -> str:
+    return ctx.obj.name
+
+
+def run_copy_save_file(ctx: ProjectContext, info: SaveFileInfo) -> None:
+    ctx.obj.copy_save_file(info)
 
 
 def get_graph(name: str) -> Graph:
@@ -61,33 +97,46 @@ def abort_on_invalid_id() -> Generator[None, None, None]:
 
 
 def read_project_info(name: str) -> ProjectInfo:
-    return ProjectInfo(name, get_graph(name), *_get_ids(name))
+    return ProjectInfo(name, get_graph(name), **_get_metadata(name))
 
 
-def _get_ids(name: str) -> Tuple[int, int, int, int]:
+def _get_metadata(name: str) -> Dict[str, Any]:
     with open(get_project_dir(name) / 'data') as f:
-        config = cast(Mapping[str, int], parse(f.read()))
-        return (config[LAST_CHOICE_ID], config[LAST_GENERATED_ID],
-                config[NEXT_NUMERIC_ENDING_ID], config[ROUTE_ID])
+        config = cast(MutableMapping[str, Any], parse(f.read()))
+    metadata = {key: config[key] for key in _IDS}
+    try:
+        file = Path(config[FILE])
+        target_directory = Path(config[TARGET_DIRECTORY])
+    except KeyError:
+        pass
+    else:
+        metadata.update(file=file, target_directory=target_directory)
+    return metadata
 
 
 def store_info(info: ProjectInfo) -> None:
     store(info.graph, get_graph_file(info.name))
-    _store_ids(info)
+    _store_metadata(info)
 
 
-def _store_ids(info: ProjectInfo) -> None:
+def _store_metadata(info: ProjectInfo) -> None:
     with open(get_project_dir(info.name) / 'data', 'w+') as f:
         doc = parse(f.read())
-        doc[LAST_CHOICE_ID] = info.last_choice_id
-        doc[LAST_GENERATED_ID] = info.last_generated_id
-        doc[NEXT_NUMERIC_ENDING_ID] = info.next_numeric_ending_id
-        doc[ROUTE_ID] = info.route_id
+        doc.update(dict(zip(_IDS, [
+            info.last_choice_id,
+            info.last_generated_id,
+            info.next_numeric_ending_id,
+            info.route_id
+        ])))
+        if info.file:
+            doc[FILE] = str(info.file)
+            doc[TARGET_DIRECTORY] = str(info.target_directory)
         f.write(dumps(doc))
 
 
-def store_new_project(name: str) -> ProjectInfo:
-    info = create_project(name)
+def store_new_project(name: str, file: Optional[Path] = None,
+                      target_directory: Optional[Path] = None) -> ProjectInfo:
+    info = create_project(name, file, target_directory)
     store_info(info)
     return info
 

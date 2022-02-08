@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from dataclasses import dataclass
-from typing import Sequence
+from pathlib import Path
+from typing import Optional, Sequence
 
 from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
                                  add_selected_node, comment_node,
@@ -24,19 +25,31 @@ _ROUTE_COLORS = (
 
 
 @dataclass
-class ProjectInfo:
+class _BaseInfo:
     name: str
     graph: Graph
-    last_choice_id: int
     last_generated_id: int
     next_numeric_ending_id: int
+
+
+@dataclass(kw_only=True)
+class SaveFileInfo:
+    last_choice_id: int
     route_id: int
+    file: Optional[Path] = None
+    target_directory: Optional[Path] = None
 
 
-def create_project(name: str) -> ProjectInfo:
+@dataclass
+class ProjectInfo(SaveFileInfo, _BaseInfo):
+    pass
+
+
+def create_project(name: str, file: Optional[Path] = None,
+                   target_dir: Optional[Path] = None) -> ProjectInfo:
     return ProjectInfo(name, _create_graph(name), last_choice_id=0,
                        last_generated_id=0, next_numeric_ending_id=0,
-                       route_id=0)
+                       route_id=0, file=file, target_directory=target_dir)
 
 
 def _create_graph(name: str) -> Graph:

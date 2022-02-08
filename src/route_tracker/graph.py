@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from typing import Union, cast
+from typing import Any, Union, cast
 
 import pygraphviz as pgv
 
@@ -13,6 +13,13 @@ class Graph:
                        if isinstance(name_or_path, Path)
                        else pgv.AGraph(name=name_or_path, directed=True,
                                        forcelabels='true'))
+
+    def __eq__(self, other: Any) -> bool:
+        try:
+            other_content: str = getattr(other, 'content')
+        except AttributeError:
+            return NotImplemented
+        return self.content == other_content
 
     @property
     def content(self) -> str:

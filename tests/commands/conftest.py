@@ -13,13 +13,6 @@ def cli_runner() -> CliRunner:
 
 
 @fixture(autouse=True)
-def test_data_dir(tmp_path: Path) -> Path:
-    data_dir = tmp_path
-    os.environ['XDG_DATA_HOME'] = str(data_dir)
-    return data_dir
-
-
-@fixture(autouse=True)
 def test_config_dir(tmp_path: Path) -> Path:
     config_dir = tmp_path
     os.environ['XDG_CONFIG_HOME'] = str(config_dir)
