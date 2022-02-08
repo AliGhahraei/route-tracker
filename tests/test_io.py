@@ -41,15 +41,15 @@ class TestCopySaveFile:
     @staticmethod
     def test_copy_skips_copy_if_save_file_path_is_none(mock_copy: Mock) \
             -> None:
-        copy_save_file(SaveFileInfo(last_choice_id=1, route_id=1))
+        copy_save_file(SaveFileInfo(route_id=1), 1)
         mock_copy.assert_not_called()
 
     @staticmethod
     def test_copy_copies_if_save_file_path_is_set(file: Path,
                                                   target_dir: Path) -> None:
         file.touch()
-        copy_save_file(SaveFileInfo(last_choice_id=1, route_id=2,
-                                    file=file, target_directory=target_dir))
+        copy_save_file(SaveFileInfo(route_id=2, file=file,
+                                    target_directory=target_dir), 1)
         assert (target_dir / '1_2').exists()
 
     @staticmethod
@@ -57,11 +57,11 @@ class TestCopySaveFile:
             file: Path, target_dir: Path,
     ) -> None:
         file.touch()
-        copy_save_file(SaveFileInfo(last_choice_id=1, route_id=2,
-                                    file=file, target_directory=target_dir))
+        copy_save_file(SaveFileInfo(route_id=2, file=file,
+                                    target_directory=target_dir), 1)
 
-        copy_save_file(SaveFileInfo(last_choice_id=3, route_id=4,
-                                    file=file, target_directory=target_dir))
+        copy_save_file(SaveFileInfo(route_id=4, file=file,
+                                    target_directory=target_dir), 3)
         assert (target_dir / '1_2').exists()
         assert (target_dir / '3_4').exists()
 

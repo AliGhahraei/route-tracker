@@ -37,11 +37,12 @@ def add(ctx: ProjectContext) -> None:
     """
     project_name = get_name(ctx)
     info = read_project_info(project_name)
+    current_choice = info.last_choice_id
     choices = _read_choices()
     selected_choice_index = _get_selected_choice_index(len(choices))
     store_choices_and_selection(info, choices, selected_choice_index)
     draw_image(info.name, info.graph)
-    run_copy_save_file(ctx, info)
+    run_copy_save_file(ctx, info, current_choice)
 
 
 def _read_choices() -> List[str]:
@@ -76,11 +77,12 @@ def advance(ctx: ProjectContext, existing_id: int = Option(..., prompt=True)) \
     """
     project_name = get_name(ctx)
     info = read_project_info(project_name)
+    current_choice = info.last_choice_id
     with _abort_on_invalid_or_current_id('advance', existing_id, info):
         advance_to_choice(info, existing_id)
     store_info(info)
     draw_image(info.name, info.graph)
-    run_copy_save_file(ctx, info)
+    run_copy_save_file(ctx, info, current_choice)
 
 
 @contextmanager

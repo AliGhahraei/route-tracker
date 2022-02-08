@@ -30,11 +30,11 @@ class _BaseInfo:
     graph: Graph
     last_generated_id: int
     next_numeric_ending_id: int
+    last_choice_id: int
 
 
 @dataclass(kw_only=True)
 class SaveFileInfo:
-    last_choice_id: int
     route_id: int
     file: Optional[Path] = None
     target_directory: Optional[Path] = None

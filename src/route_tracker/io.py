@@ -27,19 +27,19 @@ _IDS = (
     _NEXT_NUMERIC_ENDING_ID,
     _ROUTE_ID,
 )
-CopySaveFile = Callable[[SaveFileInfo], None]
+CopySaveFile = Callable[[SaveFileInfo, int], None]
 
 
 class ProjectContext(Context):
     obj: 'ContextObject'
 
 
-def copy_save_file(info: SaveFileInfo) -> None:
+def copy_save_file(info: SaveFileInfo, past_selection: int) -> None:
     if info.file and info.target_directory:
         info.target_directory.mkdir(parents=True, exist_ok=True)
         copy2(
             info.file,
-            info.target_directory / f'{info.last_choice_id}_{info.route_id}',
+            info.target_directory / f'{past_selection}_{info.route_id}',
         )
 
 
@@ -53,8 +53,9 @@ def get_name(ctx: ProjectContext) -> str:
     return ctx.obj.name
 
 
-def run_copy_save_file(ctx: ProjectContext, info: SaveFileInfo) -> None:
-    ctx.obj.copy_save_file(info)
+def run_copy_save_file(ctx: ProjectContext, info: SaveFileInfo,
+                       past_selection: int) -> None:
+    ctx.obj.copy_save_file(info, past_selection)
 
 
 def get_graph(name: str) -> Graph:
