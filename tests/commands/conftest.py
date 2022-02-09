@@ -1,15 +1,24 @@
 import os
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Any, Generator, Optional
 from unittest.mock import Mock, patch
 
+from click.testing import Result
 from pytest import FixtureRequest, fixture
 from typer.testing import CliRunner
 
+from tests.commands.helpers import Runner
+
 
 @fixture
-def cli_runner() -> CliRunner:
-    return CliRunner(mix_stderr=False)
+def runner(mock_copy_save_file: Mock) -> Runner:
+    def cli_runner(*args: Any, **kwargs: Any) -> Result:
+        return CliRunner(mix_stderr=False).invoke(
+            *args,
+            obj={'copy_save_file': mock_copy_save_file},
+            **kwargs,
+        )
+    return cli_runner
 
 
 @fixture(autouse=True)

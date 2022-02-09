@@ -2,14 +2,12 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from pytest import fixture, mark
-from typer.testing import CliRunner
 
 from route_tracker.commands import app
 from route_tracker.graph import (Graph, add_edge, add_node, add_selected_node,
                                  comment_node, select_node)
-from route_tracker.io import (read_project_info, store_choices_and_selection,
-                              store_new_project)
-from tests.commands.helpers import (InputRunner, assert_draw_called,
+from route_tracker.io import store_choices_and_selection, store_new_project
+from tests.commands.helpers import (InputRunner, Runner, assert_draw_called,
                                     assert_error_exit, assert_normal_exit,
                                     assert_stored_graph_equals)
 
@@ -17,11 +15,10 @@ from tests.commands.helpers import (InputRunner, assert_draw_called,
 class TestAddChoicesCommand:
     @staticmethod
     @fixture
-    def add_choices_runner(cli_runner: CliRunner, mock_copy_save_file: Mock) \
+    def add_choices_runner(runner: Runner, mock_copy_save_file: Mock) \
             -> InputRunner:
-        return lambda input_: cli_runner.invoke(
+        return lambda input_: runner(
             app, ['test_name', 'choices', 'add'], input=input_,
-            obj={'copy_save_file': mock_copy_save_file},
         )
 
     @staticmethod
@@ -56,15 +53,6 @@ class TestAddChoicesCommand:
         add_choices_runner('choice1\n\n0')
 
         assert_draw_called(mock_draw, test_data_dir)
-
-    @staticmethod
-    def test_add_calls_mock_copy_save_file(add_choices_runner: InputRunner,
-                                           mock_copy_save_file: Mock) -> None:
-        store_new_project('test_name')
-        add_choices_runner('choice1\n\n0')
-        info = read_project_info('test_name')
-
-        mock_copy_save_file.assert_called_once_with(False, info, 0)
 
     @staticmethod
     def test_add_exits_with_error_when_called_with_no_choices(
@@ -102,11 +90,10 @@ class TestAddChoicesCommand:
 class TestAdvanceChoice:
     @staticmethod
     @fixture
-    def advance_choices_runner(cli_runner: CliRunner,
+    def advance_choices_runner(runner: Runner,
                                mock_copy_save_file: Mock) -> InputRunner:
-        return lambda input_: cli_runner.invoke(
+        return lambda input_: runner(
             app, ['test_name', 'choices', 'advance'], input=input_,
-            obj={'copy_save_file': mock_copy_save_file},
         )
 
     @staticmethod
@@ -160,24 +147,12 @@ class TestAdvanceChoice:
 
         assert_draw_called(mock_draw, test_data_dir)
 
-    @staticmethod
-    def test_advance_calls_mock_copy_save_file(
-            advance_choices_runner: InputRunner,
-            mock_copy_save_file: Mock,
-    ) -> None:
-        info = store_new_project('test_name')
-        store_choices_and_selection(info, ['choice1', 'choice2'], 0)
-        advance_choices_runner('2')
-        stored_info = read_project_info('test_name')
-
-        mock_copy_save_file.assert_called_once_with(False, stored_info, 1)
-
 
 class TestLinkChoices:
     @staticmethod
     @fixture
-    def link_choices_runner(cli_runner: CliRunner) -> InputRunner:
-        return lambda input_: cli_runner.invoke(
+    def link_choices_runner(runner: Runner) -> InputRunner:
+        return lambda input_: runner(
             app, ['test_name', 'choices', 'link'], input=input_,
         )
 
@@ -236,8 +211,8 @@ class TestLinkChoices:
 class TestCommentChoice:
     @staticmethod
     @fixture
-    def comment_choice_runner(cli_runner: CliRunner) -> InputRunner:
-        return lambda input_: cli_runner.invoke(
+    def comment_choice_runner(runner: Runner) -> InputRunner:
+        return lambda input_: runner(
             app, ['test_name', 'choices', 'comment'], input=input_,
         )
 

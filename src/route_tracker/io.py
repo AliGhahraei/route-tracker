@@ -3,8 +3,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from shutil import copy2
-from typing import (Any, Callable, Dict, Generator, MutableMapping, NoReturn,
-                    Optional, Sequence, cast)
+from typing import (Any, Dict, Generator, MutableMapping, NoReturn, Optional,
+                    Sequence, cast)
 
 from tomlkit import dumps, parse
 from typer import Context, Exit, echo
@@ -27,11 +27,19 @@ _IDS = (
     _NEXT_NUMERIC_ENDING_ID,
     _ROUTE_ID,
 )
-CopySaveFile = Callable[[SaveFileInfo, int], None]
+
+
+class NewContext(Context):
+    obj: str
 
 
 class ProjectContext(Context):
     obj: 'ContextObject'
+
+
+@dataclass
+class ContextObject:
+    info: ProjectInfo
 
 
 def copy_save_file(save: bool, info: SaveFileInfo, past_selection: int) \
@@ -44,19 +52,8 @@ def copy_save_file(save: bool, info: SaveFileInfo, past_selection: int) \
         )
 
 
-@dataclass
-class ContextObject:
-    name: str
-    copy_save_file: CopySaveFile
-
-
-def get_name(ctx: ProjectContext) -> str:
-    return ctx.obj.name
-
-
-def run_copy_save_file(ctx: ProjectContext, info: SaveFileInfo,
-                       past_selection: int) -> None:
-    ctx.obj.copy_save_file(info, past_selection)
+def get_project_info(ctx: ProjectContext) -> ProjectInfo:
+    return ctx.obj.info
 
 
 def get_graph(name: str) -> Graph:

@@ -6,9 +6,8 @@ from typing import Generator, List
 from typer import Option, Typer, echo
 
 from route_tracker.io import (ProjectContext, abort, abort_on_invalid_id,
-                              draw_image, get_name, read_project_info,
-                              run_copy_save_file, store_choices_and_selection,
-                              store_info)
+                              draw_image, get_project_info,
+                              store_choices_and_selection, store_info)
 from route_tracker.projects import (ProjectInfo, advance_to_choice,
                                     comment_choice, link_to_choice)
 
@@ -35,14 +34,11 @@ def add(ctx: ProjectContext) -> None:
     (https://en.wikipedia.org/wiki/Zero-based_numbering). Can make backups as
     described in new.
     """
-    project_name = get_name(ctx)
-    info = read_project_info(project_name)
-    current_choice = info.last_choice_id
+    info = get_project_info(ctx)
     choices = _read_choices()
     selected_choice_index = _get_selected_choice_index(len(choices))
     store_choices_and_selection(info, choices, selected_choice_index)
     draw_image(info.name, info.graph)
-    run_copy_save_file(ctx, info, current_choice)
 
 
 def _read_choices() -> List[str]:
@@ -75,14 +71,11 @@ def advance(ctx: ProjectContext, existing_id: int = Option(..., prompt=True)) \
     Advance allows you to "jump" from your current choice to any other choice
     in your graph. Can make backups as described in new.
     """
-    project_name = get_name(ctx)
-    info = read_project_info(project_name)
-    current_choice = info.last_choice_id
+    info = get_project_info(ctx)
     with _abort_on_invalid_or_current_id('advance', existing_id, info):
         advance_to_choice(info, existing_id)
     store_info(info)
     draw_image(info.name, info.graph)
-    run_copy_save_file(ctx, info, current_choice)
 
 
 @contextmanager
@@ -103,8 +96,7 @@ def link(ctx: ProjectContext, existing_id: int = Option(..., prompt=True)) \
     Link allows you to draw an arrow from your current choice to any other
     choice in your graph. It does not mark the target choice as selected.
     """
-    project_name = get_name(ctx)
-    info = read_project_info(project_name)
+    info = get_project_info(ctx)
     with _abort_on_invalid_or_current_id('link', existing_id, info):
         link_to_choice(info, existing_id)
     store_info(info)
@@ -118,8 +110,7 @@ def comment(ctx: ProjectContext, existing_id: int = Option(..., prompt=True),
 
     Comment displays a message next to a choice.
     """
-    project_name = get_name(ctx)
-    info = read_project_info(project_name)
+    info = get_project_info(ctx)
     with abort_on_invalid_id():
         comment_choice(info, existing_id, comment_text)
     store_info(info)

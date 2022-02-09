@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 from pathlib import Path
 from typing import Optional, Protocol
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 
 from click.testing import Result
 from pytest import fixture, mark
-from typer.testing import CliRunner
 
-from route_tracker.commands import app
+from route_tracker.commands import app, run
 from route_tracker.graph import Graph, add_selected_node
-from route_tracker.io import read_project_info, store_new_project
-from tests.commands.helpers import (assert_draw_called, assert_error_exit,
-                                    assert_normal_exit,
+from route_tracker.io import (ContextObject, read_project_info,
+                              store_new_project)
+from tests.commands.helpers import (Runner, assert_draw_called,
+                                    assert_error_exit, assert_normal_exit,
                                     assert_stored_graph_equals, get_image_path)
 
 
@@ -26,21 +26,79 @@ class ViewRunner(Protocol):
         pass
 
 
+class TestRun:
+    @staticmethod
+    @fixture
+    def copy_save_file_mock() -> Mock:
+        return Mock()
+
+    @staticmethod
+    @fixture
+    def ctx(copy_save_file_mock: Mock) -> Mock:
+        ctx_ = Mock()
+        ctx_.obj = {'copy_save_file': copy_save_file_mock}
+        return ctx_
+
+    @staticmethod
+    @fixture
+    def new_ctx(ctx: Mock) -> Mock:
+        ctx.invoked_subcommand = 'new'
+        return ctx
+
+    @staticmethod
+    @fixture
+    def non_new_ctx(ctx: Mock) -> Mock:
+        ctx.invoked_subcommand = 'non_new'
+        return ctx
+
+    @staticmethod
+    def test_run_sets_obj_to_name_for_new_subcommand(new_ctx: Mock) -> None:
+        run(new_ctx, 'test_name')
+
+        assert new_ctx.obj == 'test_name'
+
+    @staticmethod
+    def test_run_sets_obj_to_info_for_non_new_subcommand(
+            non_new_ctx: Mock,
+    ) -> None:
+        info = store_new_project('test_name')
+        run(non_new_ctx, 'test_name')
+
+        assert non_new_ctx.obj == ContextObject(info)
+
+    @staticmethod
+    def test_run_calls_copy_save_file_for_non_new_subcommand(
+            non_new_ctx: Mock, copy_save_file_mock: Mock,
+    ) -> None:
+        info = store_new_project('test_name')
+        run(non_new_ctx, 'test_name')
+
+        copy_save_file_mock.assert_called_with(ANY, info, 0)
+
+    @staticmethod
+    def test_run_does_not_call_copy_save_file_for_new_subcommand(
+            new_ctx: Mock, copy_save_file_mock: Mock,
+    ) -> None:
+        run(new_ctx, 'test_name')
+
+        copy_save_file_mock.assert_not_called()
+
+
 class TestNewCommand:
     @staticmethod
     @fixture
-    def new_runner(cli_runner: CliRunner) -> NewRunner:
-        def runner(project_name: str = 'test_name',
-                   save_file: Optional[str] = None,
-                   target_directory: Optional[str] = None) -> Result:
+    def new_runner(runner: Runner) -> NewRunner:
+        def runner_(project_name: str = 'test_name',
+                    save_file: Optional[str] = None,
+                    target_directory: Optional[str] = None) -> Result:
             args = []
             if save_file:
                 args.extend(['--save-file', save_file])
             if target_directory:
                 args.extend(['--target-directory', target_directory])
-            return cli_runner.invoke(app, [project_name, 'new', *args])
+            return runner(app, [project_name, 'new', *args])
 
-        return runner
+        return runner_
 
     @staticmethod
     def test_new_exits_with_correct_message_when_called_with_name(
@@ -110,11 +168,11 @@ class TestNewCommand:
 class TestViewCommand:
     @staticmethod
     @fixture
-    def view_runner(cli_runner: CliRunner) -> ViewRunner:
-        def runner(project_name: str = 'test_name', input_: str = '') \
+    def view_runner(runner: Runner) -> ViewRunner:
+        def runner_(project_name: str = 'test_name', input_: str = '') \
                 -> Result:
-            return cli_runner.invoke(app, [project_name, 'view'], input=input_)
-        return runner
+            return runner(app, [project_name, 'view'], input=input_)
+        return runner_
 
     @staticmethod
     def test_view_prompts_for_viewer_if_not_configured(

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from functools import partial
 from pathlib import Path
 from subprocess import Popen
 from typing import Callable, MutableMapping, Optional
@@ -10,10 +9,10 @@ from xdg import xdg_config_home
 
 from route_tracker.commands.choices import app as choices_app
 from route_tracker.commands.ending import app as ending_app
-from route_tracker.io import (ContextObject, ProjectContext, abort,
-                              copy_save_file, draw_image, get_graph,
-                              get_graph_file, get_image_path, get_name,
-                              store_new_project)
+from route_tracker.io import (ContextObject, NewContext, ProjectContext, abort,
+                              copy_save_file, draw_image, get_graph_file,
+                              get_image_path, get_project_info,
+                              read_project_info, store_new_project)
 from route_tracker.projects import SaveFileInfo
 
 SAVE_HELP = ("If new is called with the parameters described in its help, save"
@@ -40,13 +39,17 @@ def run(ctx: Context, project_name: str,
 
     It can also make backups of a save file (refer to the new subcommand).
     """
-    ctx_copy: CopySave = ctx.obj.get('copy_save_file', copy_save_file)
-    copy = partial(ctx_copy, save)
-    ctx.obj = ContextObject(project_name, copy_save_file=copy)
+    if ctx.invoked_subcommand == 'new':
+        ctx.obj = project_name
+    else:
+        ctx_copy: CopySave = ctx.obj.get('copy_save_file', copy_save_file)
+        info = read_project_info(project_name)
+        ctx_copy(save, info, info.last_choice_id)
+        ctx.obj = ContextObject(info)
 
 
 @app.command()
-def new(ctx: ProjectContext, save_file: Optional[Path] = Option(None),
+def new(ctx: NewContext, save_file: Optional[Path] = Option(None),
         target_directory: Optional[Path] = Option(None)) -> None:
     """Creates a new project
 
@@ -63,7 +66,7 @@ def new(ctx: ProjectContext, save_file: Optional[Path] = Option(None),
 
     You should save just before you run a command with this option.
     """
-    name = get_name(ctx)
+    name = ctx.obj
     _validate_project_does_not_exist(name)
     if bool(save_file) ^ bool(target_directory):
         abort('save_file and test_directory must be passed together')
@@ -87,8 +90,9 @@ def view(ctx: ProjectContext) -> None:
     View asks you for an image viewer command if you have not configured one
     before (it must handle PNGs) and displays your project as a graph
     """
-    project_name = get_name(ctx)
-    draw_image(project_name, get_graph(project_name))
+    info = get_project_info(ctx)
+    project_name = info.name
+    draw_image(project_name, info.graph)
     Popen([_get_viewer(), get_image_path(project_name)])
 
 

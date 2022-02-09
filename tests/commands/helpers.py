@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable, Protocol
 from unittest.mock import ANY, Mock
 
 from click.testing import Result
@@ -34,3 +34,8 @@ def get_project_dir(data_dir: Path) -> Path:
 
 def get_image_path(data_dir: Path) -> Path:
     return get_project_dir(data_dir) / 'routes.png'
+
+
+class Runner(Protocol):
+    def __call__(self, *args: Any, **kwargs: Any) -> Result:
+        pass

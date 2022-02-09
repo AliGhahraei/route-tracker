@@ -2,14 +2,13 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from pytest import fixture
-from typer.testing import CliRunner
 
 from route_tracker.commands import app
 from route_tracker.graph import (Graph, add_edge, add_ending_node, add_node,
                                  add_selected_node)
 from route_tracker.io import (store_choices_and_selection, store_ending,
                               store_new_project)
-from tests.commands.helpers import (InputRunner, assert_draw_called,
+from tests.commands.helpers import (InputRunner, Runner, assert_draw_called,
                                     assert_error_exit, assert_normal_exit,
                                     assert_stored_graph_equals)
 
@@ -17,8 +16,8 @@ from tests.commands.helpers import (InputRunner, assert_draw_called,
 class TestAddEndingCommand:
     @staticmethod
     @fixture
-    def add_ending_runner(cli_runner: CliRunner) -> InputRunner:
-        return lambda input_: cli_runner.invoke(
+    def add_ending_runner(runner: Runner) -> InputRunner:
+        return lambda input_: runner(
             app, ['test_name', 'ending', 'add'], input=input_,
         )
 
@@ -81,8 +80,8 @@ class TestAddEndingCommand:
 class TestLinkEndingCommand:
     @staticmethod
     @fixture
-    def link_ending_runner(cli_runner: CliRunner) -> InputRunner:
-        return lambda input_: cli_runner.invoke(
+    def link_ending_runner(runner: Runner) -> InputRunner:
+        return lambda input_: runner(
             app, ['test_name', 'ending', 'link'], input=input_,
         )
 

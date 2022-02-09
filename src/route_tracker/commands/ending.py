@@ -1,8 +1,7 @@
 from typer import Option, Typer
 
 from route_tracker.io import (ProjectContext, abort_on_invalid_id, draw_image,
-                              get_name, read_project_info, store_ending,
-                              store_info)
+                              get_project_info, store_ending, store_info)
 from route_tracker.projects import link_to_ending
 
 CHOICE_HELP = 'ID of an existing choice to start the route with'
@@ -33,8 +32,7 @@ def add(
     Add creates an ending and links your choice to it. It then jumps to the
     specified new choice and starts a new route
     """
-    project_name = get_name(ctx)
-    info = read_project_info(project_name)
+    info = get_project_info(ctx)
     store_ending(info, ending_label, new_choice_id)
     draw_image(info.name, info.graph)
 
@@ -51,8 +49,7 @@ def link(
     Link draws an arrow from your current choice to the specified ending. It
     then jumps to the specified new choice and starts a new route.
     """
-    project_name = get_name(ctx)
-    info = read_project_info(project_name)
+    info = get_project_info(ctx)
     with abort_on_invalid_id():
         link_to_ending(info, ending_id, new_choice_id)
     store_info(info)
