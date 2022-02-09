@@ -15,7 +15,7 @@ def assert_stored_graph_equals(data_dir: Path, expected_graph: Graph) -> None:
 
 
 def assert_draw_called(mock_draw: Mock, data_dir: Path) -> None:
-    mock_draw.assert_called_once_with(ANY, get_image_dir(data_dir))
+    mock_draw.assert_called_once_with(ANY, get_image_path(data_dir))
 
 
 def assert_normal_exit(result: Result, message: str) -> None:
@@ -32,5 +32,5 @@ def get_project_dir(data_dir: Path) -> Path:
     return data_dir / 'route-tracker' / 'test_name'
 
 
-def get_image_dir(data_dir: Path) -> Path:
+def get_image_path(data_dir: Path) -> Path:
     return get_project_dir(data_dir) / 'routes.png'

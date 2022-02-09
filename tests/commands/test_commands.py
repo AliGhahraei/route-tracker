@@ -12,7 +12,7 @@ from route_tracker.graph import Graph, add_selected_node
 from route_tracker.io import read_project_info, store_new_project
 from tests.commands.helpers import (assert_draw_called, assert_error_exit,
                                     assert_normal_exit,
-                                    assert_stored_graph_equals, get_image_dir)
+                                    assert_stored_graph_equals, get_image_path)
 
 
 class NewRunner(Protocol):
@@ -140,9 +140,9 @@ class TestViewCommand:
         store_new_project('test_name')
         view_runner(input_='test_viewer\n')
 
-        assert get_image_dir(test_data_dir).exists()
+        assert get_image_path(test_data_dir).exists()
         mock_spawn.assert_called_once_with(
-            ['test_viewer', get_image_dir(test_data_dir)],
+            ['test_viewer', get_image_path(test_data_dir)],
         )
 
     @staticmethod
