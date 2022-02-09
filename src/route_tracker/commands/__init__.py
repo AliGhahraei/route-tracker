@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+from functools import partial
 from pathlib import Path
 from subprocess import Popen
-from typing import MutableMapping, Optional
+from typing import Callable, MutableMapping, Optional
 
 from tomlkit import document, dumps, parse
 from typer import Context, Option, Typer, echo
@@ -9,9 +10,15 @@ from xdg import xdg_config_home
 
 from route_tracker.commands.choices import app as choices_app
 from route_tracker.commands.ending import app as ending_app
-from route_tracker.io import (ContextObject, ProjectContext, abort, draw_image,
-                              get_graph, get_graph_file, get_image_path,
-                              get_name, store_new_project)
+from route_tracker.io import (ContextObject, ProjectContext, abort,
+                              copy_save_file, draw_image, get_graph,
+                              get_graph_file, get_image_path, get_name,
+                              store_new_project)
+from route_tracker.projects import SaveFileInfo
+
+SAVE_HELP = ("If new is called with the parameters described in its help, save"
+             " can be passed to make a backup for any other command")
+CopySave = Callable[[bool, SaveFileInfo, int], None]
 
 app = Typer()
 app.add_typer(choices_app, name='choices')
@@ -19,16 +26,23 @@ app.add_typer(ending_app, name='ending')
 
 
 @app.callback(context_settings={'obj': {}})
-def run(ctx: Context, project_name: str) -> None:
+def run(ctx: Context, project_name: str,
+        save: bool = Option(False, help=SAVE_HELP)) -> None:
     """Keep track of your choices
 
     Route-tracker helps you keep track of your choices when playing a
     text-based game, when reading a visual novel or any time you want to track
-    some kind of decision-making process. Each individual "thing" tracked by it
-    is called a project. It can show a visualization of the choices you have
-    selected. The current choice is shown with a double circle around it.
+    some kind of decision-making process.
+
+    Each individual "thing" tracked by it is called a project. It can show a
+    visualization of the choices you have selected. The current choice is
+    shown with a double circle around it.
+
+    It can also make backups of a save file (refer to the new subcommand).
     """
-    ctx.obj = ContextObject(project_name, **ctx.obj)
+    ctx_copy: CopySave = ctx.obj.get('copy_save_file', copy_save_file)
+    copy = partial(ctx_copy, save)
+    ctx.obj = ContextObject(project_name, copy_save_file=copy)
 
 
 @app.command()
@@ -38,11 +52,16 @@ def new(ctx: ProjectContext, save_file: Optional[Path] = Option(None),
 
     Each program or "thing" you want to track should have its own project.
     If save_file and target_directory are passed, a backup of save_file will
-    be stored in target_directory when you call choices advance or choices add.
-    The file will be named <previously_selected_node_id>.<route_id>. This way
-    you would backup a save "0_0" when you add your first choices and you would
-    be able to return to that moment of your first decision to explore another
-    path. You should save just before you select a choice.
+    be stored in target_directory when you call any other command passing the
+    save flag before its name. The file will be named
+    <selected_node_id>.<route_id> where the node id is the node that was
+    selected just before the command was run.
+
+    For example, if you just started a project and you ran `route --save
+    myproject choices add` you would backup a save "0_0". If you ran it after
+    your first ending and you go back to the root node, you would save "0_1".
+
+    You should save just before you run a command with this option.
     """
     name = get_name(ctx)
     _validate_project_does_not_exist(name)

@@ -34,8 +34,9 @@ class ProjectContext(Context):
     obj: 'ContextObject'
 
 
-def copy_save_file(info: SaveFileInfo, past_selection: int) -> None:
-    if info.file and info.target_directory:
+def copy_save_file(save: bool, info: SaveFileInfo, past_selection: int) \
+        -> None:
+    if save and info.file and info.target_directory:
         info.target_directory.mkdir(parents=True, exist_ok=True)
         copy2(
             info.file,
@@ -46,7 +47,7 @@ def copy_save_file(info: SaveFileInfo, past_selection: int) -> None:
 @dataclass
 class ContextObject:
     name: str
-    copy_save_file: CopySaveFile = copy_save_file
+    copy_save_file: CopySaveFile
 
 
 def get_name(ctx: ProjectContext) -> str:

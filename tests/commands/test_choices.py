@@ -14,11 +14,6 @@ from tests.commands.helpers import (InputRunner, assert_draw_called,
                                     assert_stored_graph_equals)
 
 
-@fixture
-def mock_copy_save_file() -> Mock:
-    return Mock()
-
-
 class TestAddChoicesCommand:
     @staticmethod
     @fixture
@@ -69,7 +64,7 @@ class TestAddChoicesCommand:
         add_choices_runner('choice1\n\n0')
         info = read_project_info('test_name')
 
-        mock_copy_save_file.assert_called_once_with(info, 0)
+        mock_copy_save_file.assert_called_once_with(False, info, 0)
 
     @staticmethod
     def test_add_exits_with_error_when_called_with_no_choices(
@@ -175,7 +170,7 @@ class TestAdvanceChoice:
         advance_choices_runner('2')
         stored_info = read_project_info('test_name')
 
-        mock_copy_save_file.assert_called_once_with(stored_info, 1)
+        mock_copy_save_file.assert_called_once_with(False, stored_info, 1)
 
 
 class TestLinkChoices:

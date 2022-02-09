@@ -33,3 +33,8 @@ def mock_draw(request: FixtureRequest) \
     else:
         with patch('route_tracker.io.draw') as mock:
             yield mock
+
+
+@fixture
+def mock_copy_save_file() -> Mock:
+    return Mock()
