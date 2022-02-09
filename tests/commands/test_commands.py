@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from typing import Optional, Protocol
-from unittest.mock import ANY, Mock
+from typing import Generator, Optional, Protocol
+from unittest.mock import ANY, Mock, patch
 
 from click.testing import Result
 from pytest import fixture, mark
@@ -27,6 +27,13 @@ class ViewRunner(Protocol):
 
 
 class TestRun:
+    @staticmethod
+    @fixture
+    def callback_decorator() -> Generator[Mock, None, None]:
+        module = 'route_tracker.commands.typer_click_app.result_callback'
+        with patch(module) as mock:
+            yield mock
+
     @staticmethod
     @fixture
     def copy_save_file_mock() -> Mock:
@@ -69,19 +76,22 @@ class TestRun:
     @staticmethod
     def test_run_calls_copy_save_file_for_non_new_subcommand(
             non_new_ctx: Mock, copy_save_file_mock: Mock,
+            callback_decorator: Mock,
     ) -> None:
         info = store_new_project('test_name')
         run(non_new_ctx, 'test_name')
+        copy_callback = callback_decorator.return_value.mock_calls[0].args[0]
+        copy_callback()
 
-        copy_save_file_mock.assert_called_with(ANY, info, 0)
+        copy_save_file_mock.assert_called_once_with(ANY, info, 0)
 
     @staticmethod
     def test_run_does_not_call_copy_save_file_for_new_subcommand(
-            new_ctx: Mock, copy_save_file_mock: Mock,
+            new_ctx: Mock, callback_decorator: Mock,
     ) -> None:
         run(new_ctx, 'test_name')
 
-        copy_save_file_mock.assert_not_called()
+        callback_decorator.assert_not_called()
 
 
 class TestNewCommand:

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 from pathlib import Path
 from subprocess import Popen
-from typing import Callable, MutableMapping, Optional
+from typing import Any, Callable, MutableMapping, Optional
 
 from tomlkit import document, dumps, parse
 from typer import Context, Option, Typer, echo
+from typer.main import get_command
 from xdg import xdg_config_home
 
 from route_tracker.commands.choices import app as choices_app
@@ -44,8 +45,12 @@ def run(ctx: Context, project_name: str,
     else:
         ctx_copy: CopySave = ctx.obj.get('copy_save_file', copy_save_file)
         info = read_project_info(project_name)
-        ctx_copy(save, info, info.last_choice_id)
+        last_id = info.last_choice_id
         ctx.obj = ContextObject(info)
+
+        @typer_click_app.result_callback()  # type: ignore[attr-defined,misc]
+        def copy_callback(*_: Any, **__: Any) -> None:
+            ctx_copy(save, info, last_id)
 
 
 @app.command()
@@ -129,3 +134,6 @@ def _store_viewer(viewer: str) -> None:
     config['viewer'] = viewer
     with open(_get_config(), 'w') as f:
         f.write(dumps(config))
+
+
+typer_click_app = get_command(app)
